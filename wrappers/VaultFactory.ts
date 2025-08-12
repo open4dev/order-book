@@ -39,13 +39,15 @@ export class VaultFactory implements Contract {
         });
     }
 
-    async sendCreateVault(provider: ContractProvider, via: Sender, value: bigint) {
+    async sendCreateVault(provider: ContractProvider, via: Sender, value: bigint, jettonWalletCode: Cell, jettonMaster: Address, version: number) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x64e90480, 32)
-            .storeUint(1, 32)
+            .storeRef(jettonWalletCode)
+            .storeAddress(jettonMaster)
+            .storeUint(version, 2)
             .endCell(),
         });
     }

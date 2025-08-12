@@ -1,30 +1,43 @@
 
 
 struct Storage {
-    factory: address,
-    randomHash: uint256,
-    amount: uint128,
-    orderCode: cell,
+    vault_factory: address
+    version: uint2
+    jettonWalletCode: cell
+    jettonMaster: address
+    randomHash: uint256
+    amount: uint128
+    orderCode: cell
+}
+
+struct ( 0x6ef0de39 ) CreateOrder {
+}
+
+struct ( 0x12966c79 ) VaultJettonTransfer {
 
 }
 
-struct ( 0x1) CreateOrder {
+
+struct JettonTransferNotificationPayload {
+    toAmount: coins
+    toJettonMinter: address?
+}
+
+struct ( 0x7362d09c ) JettonTransferNotification {
+    query_id: uint64
+    amount: coins
+    sender: address
+    forward_payload: JettonTransferNotificationPayload
+}
+
+struct ( 0x7d36e7d6 ) NotifyCloseOrder {
 
 }
 
-struct ( 0x2) VaultJettonTransfer {
-
+struct ( 0x2717c4a2 ) InitVault {
 }
 
-struct ( 0x3) JettonTransferNotification {
-
-}
-
-struct ( 0x4) CloseOrder {
-
-}
-
-type AllowedMessage = CreateOrder | VaultJettonTransfer | JettonTransferNotification | CloseOrder
+type AllowedMessage = CreateOrder | VaultJettonTransfer | JettonTransferNotification | NotifyCloseOrder | InitVault
 
 fun Storage.load() {
     return Storage.fromCell(contract.getData());
@@ -34,8 +47,118 @@ fun Storage.save(self) {
     contract.setData(self.toCell())
 }
 
+@inline_ref
+fun Storage.serialize(self): cell {
+    return self.toCell();
+}
+
+@inline
+fun Storage.parse(c: cell): Storage {
+    return Storage.fromCell(c);
+}
 
 
-fun onInternalMessage(myBalance: int, msgValue: int, msgFull: cell, msgBody: slice) {
 
+
+fun onInternalMessage(in: InMessage) {
+    var storage = Storage.parse(contract.getData());
+
+    var msg = AllowedMessage.fromSlice(in.body);
+
+    match (msg) {
+        CreateOrder => {
+            return;
+        }
+        VaultJettonTransfer => {
+            return;
+        }
+        JettonTransferNotification => {
+            var generatedJettonWalletAddress: address = calculateJettonWalletAddress(storage.jettonWalletCode, storage.jettonMaster);
+            assert(generatedJettonWalletAddress == in.senderAddress) throw 403;
+            storage.amount += msg.amount;
+
+            var orderAddress: AutoDeployAddress = prepareOrder(msg, storage.orderCode, storage.jettonMaster);
+
+            createMessage({
+                bounce: false,
+                dest: orderAddress,
+                value: ton("0.1")
+            });
+
+            return;
+        }
+        NotifyCloseOrder => {
+            return;
+        }
+        InitVault => {
+            assert (in.senderAddress == storage.vault_factory) throw 422;
+            return;
+        }
+    }
+}
+
+
+
+fun prepareOrder(msg: JettonTransferNotification, orderCode: cell, jettonMaster: address): AutoDeployAddress {
+    var orderInitData = beginCell()
+        .storeAddress(jettonMaster)
+        .storeAddress(msg.forward_payload.toJettonMinter!)
+        .storeAddress(msg.sender)
+        .storeCoins(msg.amount)
+        .storeCoins(msg.forward_payload.toAmount!)
+        .storeAddress(contract.getAddress())
+    .endCell();
+
+    return AutoDeployAddress{
+        stateInit: {
+            code: orderCode,
+            data: orderInitData
+        }
+    };
+}
+
+fun calculateJettonWalletAddress(jettonWalletCode: cell, jettonMaster: address): address {
+    // pack_jetton_wallet_data:
+    // begin_cell()
+    //     .store_uint(status, STATUS_SIZE)
+    //     .store_coins(balance)
+    //     .store_slice(owner_address)
+    //     .store_slice(jetton_master_address)
+    //     .end_cell();
+    // return begin_cell()
+    //     .store_uint(0, 2) ;; 0b00 - No split_depth; No special
+    //     .store_maybe_ref(jetton_wallet_code)
+    //     .store_maybe_ref(
+    //         pack_jetton_wallet_data(
+    //             0, ;; status
+    //             0, ;; balance
+    //             owner_address,
+    //             jetton_master_address)
+    //     )
+    //     .store_uint(0, 1) ;; Empty libraries
+    //     .end_cell();
+
+    var jettonWalletData: cell = beginCell()
+        .storeUint(0, 4)
+        .storeCoins(0)
+        .storeAddress(contract.getAddress())
+        .storeAddress(jettonMaster)
+    .endCell();
+
+    var stateInitCell = beginCell()
+        .storeUint(0, 2)
+        .storeMaybeRef(jettonWalletCode)
+        .storeMaybeRef(jettonWalletData)
+        .storeUint(0, 1)
+    .endCell();
+
+    var jettonWalletAddress: address = beginCell()
+    .storeUint(4, 3)
+    .storeInt(BASECHAIN, 8)
+    .storeUint(stateInitCell.hash(), 256)
+    .endCell()
+    .beginParse()
+    .loadAddress();
+
+    return jettonWalletAddress
 }

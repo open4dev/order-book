@@ -32,7 +32,9 @@ fun Storage.changeComission(mutate self, newComission: int): void {
 
 
 struct ( 0x64e90480 ) CreateVault { // "CreateVault"c
-    test: uint32,
+    jettonWalletCode: cell
+    jettonMaster: address
+    version: uint2
 }
 
 struct ( 0xb6cf7f0f ) ChangeOwner { // "ChangeOwner"c
@@ -63,16 +65,15 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         CreateVault => {
-            var (vaultAddress, vaultInitData) = prepareInitVault(storage.orderCode);
+            var autoDeployAddress = prepareInitVault(storage.orderCode, storage.vaultCode, msg.jettonWalletCode, msg.jettonMaster, msg.version);
             var reply = createMessage({
                 bounce: false,
-                dest: vaultAddress,
+                dest: autoDeployAddress,
                 value: ton("0.1"),
                 body: beginCell()
-                    .storeUint(0, 32)
-                    .storeUint(0, 128)
-                    .storeRef(vaultInitData)
+                    .storeUint(0x2717c4a2, 32)
                 .endCell()
+                
             });
             reply.send(SEND_MODE_REGULAR);
             return;
@@ -97,29 +98,28 @@ fun onInternalMessage(in: InMessage) {
 
 fun prepareInitVault(
     orderCode: cell,
-): (address, cell) {
+    vaultCode: cell,
+    jettonWalletCode: cell,
+    jettonMaster: address,
+    version: uint2
+): AutoDeployAddress {
     val contractData = beginCell()
         .storeAddress(contract.getAddress())
+        .storeUint(version, 2) // Version jetton wallet
+        .storeRef(jettonWalletCode)
+        .storeAddress(jettonMaster)
         .storeUint(random.uint256(), 256)
         .storeUint(0, 128)
         .storeRef(orderCode)
     .endCell();
 
-    var vaultInitData = beginCell()
-        .storeUint(0, 2)
-        .storeRef(orderCode)
-        .storeRef(contractData)
-        .storeUint(0, 1)
-    .endCell();
+    var autoDeployAddress = AutoDeployAddress{ 
+        stateInit: {
+            code: vaultCode,
+            data: contractData
+        }};
 
-    var vaultAddress = 
-    beginCell()
-        .storeUint(4, 3)
-        .storeInt(BASECHAIN, 8)
-        .storeUint(vaultInitData.hash(), 256)
-    .endCell().beginParse().loadAddress();
-
-    return (vaultAddress, vaultInitData);
+    return autoDeployAddress;
 }
 
 
