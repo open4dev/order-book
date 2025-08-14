@@ -20,14 +20,18 @@ struct ( 0x12966c79 ) VaultJettonTransfer {
 
 struct JettonTransferNotificationPayload {
     toAmount: coins
-    toJettonMinter: address?
+    toJettonMinter: address
+}
+
+fun JettonTransferNotificationPayload.parse(c: cell): JettonTransferNotificationPayload {
+    return JettonTransferNotificationPayload.fromCell(c);
 }
 
 struct ( 0x7362d09c ) JettonTransferNotification {
     query_id: uint64
     amount: coins
     sender: address
-    forward_payload: JettonTransferNotificationPayload
+    forward_payload: Cell<JettonTransferNotificationPayload>?
 }
 
 struct ( 0x7d36e7d6 ) NotifyCloseOrder {
@@ -79,11 +83,16 @@ fun onInternalMessage(in: InMessage) {
 
             var orderAddress: AutoDeployAddress = prepareOrder(msg, storage.orderCode, storage.jettonMaster);
 
-            createMessage({
+            var msgCreateOrder = createMessage({
                 bounce: false,
                 dest: orderAddress,
-                value: ton("0.1")
+                value: ton("0.1"),
+                body: beginCell()
+                    .storeUint(0x2d0e1e1b, 32)
+                .endCell()
             });
+
+            msgCreateOrder.send(SEND_MODE_REGULAR);
 
             return;
         }
@@ -100,13 +109,18 @@ fun onInternalMessage(in: InMessage) {
 
 
 fun prepareOrder(msg: JettonTransferNotification, orderCode: cell, jettonMaster: address): AutoDeployAddress {
-    var orderInitData = beginCell()
+    var forwardPayload = JettonTransferNotificationPayload.parse(msg.forward_payload!);
+    var orderInitDataExchangeInfo: cell = beginCell()
         .storeAddress(jettonMaster)
-        .storeAddress(msg.forward_payload.toJettonMinter!)
-        .storeAddress(msg.sender)
+        .storeAddress(forwardPayload.toJettonMinter)
         .storeCoins(msg.amount)
-        .storeCoins(msg.forward_payload.toAmount!)
+        .storeCoins(forwardPayload.toAmount)
+    .endCell();
+
+    var orderInitData = beginCell()
+        .storeAddress(msg.sender)
         .storeAddress(contract.getAddress())
+        .storeRef(orderInitDataExchangeInfo)
     .endCell();
 
     return AutoDeployAddress{

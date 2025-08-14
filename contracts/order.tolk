@@ -1,6 +1,6 @@
 struct ExchangeInfo {
-    fromJettonMinter: address?
-    toJettonMinter: address?
+    fromJettonMinter: address
+    toJettonMinter: address
     fromAmount: coins
     toAmount: coins
 }
@@ -94,3 +94,11 @@ fun onInternalMessage(in: InMessage) {
 //     // self.vault = msg.vault;
 //     return contract.setData(self.toCell())
 // }
+
+
+get fun getData(): (address, address, cell) {
+    var storage = Storage.parse(contract.getData());
+
+
+    return (storage.owner, storage.vault, storage.exchangeInfo);
+}

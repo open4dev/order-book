@@ -6,6 +6,19 @@ export function orderConfigToCell(config: OrderConfig): Cell {
     return beginCell().endCell();
 }
 
+export type OrderData = {
+    owner: Address;
+    vault: Address;
+    exchangeInfo: ExchangeInfo;
+}
+
+export type ExchangeInfo = {
+    fromJettonMinter: Address;
+    toJettonMinter: Address;
+    fromAmount: bigint;
+    toAmount: bigint;
+}
+
 export class Order implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
 
@@ -25,5 +38,24 @@ export class Order implements Contract {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell().endCell(),
         });
+    }
+
+    async getData(provider: ContractProvider) {
+        let res = await provider.get('getData', []);
+        var owner = res.stack.readAddress();
+        var vault = res.stack.readAddress();
+        var exchangeInfoCell = res.stack.readCell().asSlice();
+        var exchangeInfo = {
+            fromJettonMinter: exchangeInfoCell.loadAddress(),
+            toJettonMinter: exchangeInfoCell.loadAddress(),
+            fromAmount: exchangeInfoCell.loadCoins(),
+            toAmount: exchangeInfoCell.loadCoins(),
+        };
+        var result = {
+            owner: owner,
+            vault: vault,
+            exchangeInfo: exchangeInfo,
+        };
+        return result;
     }
 }
