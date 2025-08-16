@@ -40,6 +40,38 @@ export class Order implements Contract {
         });
     }
 
+    async sendMatchOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
+        anotherVault: Address,
+        anotherOrderOwner: Address,
+        anotherOrder: Address,
+        fromAmount: bigint,
+        toAmount: bigint,
+    }) {
+
+        // anotherVault: address
+        // anotherOrderOwner: address
+        // anotherOrder: address
+        // fromAmount: coins
+        // toAmount: coins
+
+        var matchExchangeInfo = beginCell()
+            .storeCoins(params.fromAmount)
+            .storeCoins(params.toAmount)
+            .endCell();
+
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+            .storeUint(0x47ff7e25, 32)
+            .storeAddress(params.anotherVault)
+            .storeAddress(params.anotherOrderOwner)
+            .storeAddress(params.anotherOrder)
+            .storeRef(matchExchangeInfo)
+            .endCell(),
+        });
+    }
+
     async getData(provider: ContractProvider) {
         let res = await provider.get('getData', []);
         var owner = res.stack.readAddress();

@@ -40,6 +40,7 @@ function getOrderWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAd
     return order;
 }
 
+
 describe('VaultFactory', () => {
     let code: Cell;
 
@@ -172,22 +173,93 @@ describe('VaultFactory', () => {
     });
 
     it('should deploy order', async () => {
+        const fromAmount = await fromJettonWallet.getJettonBalance()
         const toAmount = toNano(50)
         const toJettonMinterAddress = toJettonMinter.address
-        const forwardPayload = beginCell().storeCoins(toAmount).storeAddress(toJettonMinterAddress).endCell()
-
-        const resultCreateOrder = await toJettonWallet.sendTransfer(user2.getSender(), toNano(0.5), await toJettonWallet.getJettonBalance(), toVault.address, user2.address, null, toNano(0.1), forwardPayload)
+        
+        const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
+            user1.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: fromAmount,
+                vault: fromVault.address,
+                owner: user1.address,
+                toAmount: toAmount,
+                toJettonMinter: toJettonMinterAddress,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
         printTransactionFees(resultCreateOrder.transactions)
-        const toOrder = getOrderWrapper(blockchain, resultCreateOrder, toVault.address)
+        const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
+        const orderData = await fromOrder.getData()
 
-        console.log(user2.address)
-        console.log(toJettonMinter.address)
-        console.log(await toJettonWallet.getWalletData())
+        console.log(orderData)
+
+        expect(orderData.exchangeInfo.fromAmount).toBe(fromAmount)
+        expect(orderData.exchangeInfo.toAmount).toBe(toAmount)
+        expect(orderData.exchangeInfo.fromJettonMinter.toRawString()).toBe(fromJettonMinter.address.toRawString())
+        expect(orderData.exchangeInfo.toJettonMinter.toRawString()).toBe(toJettonMinter.address.toRawString())
+        expect(orderData.owner.toRawString()).toBe(user1.address.toRawString())
+        expect(orderData.vault.toRawString()).toBe(fromVault.address.toRawString())
+    });
+
+    it('should match order', async () => {
+
+        const fromAmount = await fromJettonWallet.getJettonBalance()
+        const toAmount = toNano(50)
+        const toJettonMinterAddress = toJettonMinter.address
+        
+        const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
+            user1.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: fromAmount,
+                vault: fromVault.address,
+                owner: user1.address,
+                toAmount: toAmount,
+                toJettonMinter: toJettonMinterAddress,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        printTransactionFees(resultCreateOrder.transactions)
+        const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
+
+        console.log(await fromOrder.getData())
+
+
+        const toFromAmount = toAmount
+        const fromToAmount = await toJettonWallet.getJettonBalance()
+        const toFromJettonMinterAddress = fromJettonMinter.address
+        
+        const resultCreateToOrder = await toJettonWallet.sendCreateOrder(
+            user2.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: toFromAmount,
+                vault: toVault.address,
+                owner: user2.address,
+                toAmount: fromToAmount,
+                toJettonMinter: toFromJettonMinterAddress,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        printTransactionFees(resultCreateToOrder.transactions)
+        const toOrder = getOrderWrapper(blockchain, resultCreateToOrder, toVault.address)
+
         console.log(await toOrder.getData())
 
-        console.log(toJettonMinter.address)
-        console.log(fromJettonMinter.address)
-        // TODO: fix similar jetton minter addressed in order
+        const resultMatchOrder = await fromOrder.sendMatchOrder(
+            user1.getSender(),
+            toNano(0.5),
+            {
+                anotherVault: toVault.address,
+                anotherOrderOwner: user2.address,
+                anotherOrder: toOrder.address,
+                fromAmount: toNano(100),
+                toAmount: toNano(50)
+            }
+        )
 
+        printTransactionFees(resultMatchOrder.transactions)
     });
 });

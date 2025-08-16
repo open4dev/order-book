@@ -114,6 +114,33 @@ export class JettonWallet implements Contract {
         });
 
     }
+    
+    async sendCreateOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
+        jettonAmount: bigint,
+        vault: Address,
+        owner: Address,
+        toAmount: bigint,
+        toJettonMinter: Address,
+        customPayload?: Cell | null,
+        forwardTonAmount: bigint,
+    }) {
+        const forwardPayload = beginCell()
+            .storeCoins(params.toAmount)
+            .storeAddress(params.toJettonMinter)
+            .endCell();
+
+        await this.sendTransfer(
+            provider,
+            via,
+            value,
+            params.jettonAmount,
+            params.vault,
+            params.owner,
+            params.customPayload ?? null,
+            params.forwardTonAmount,
+            forwardPayload
+        );
+    }
     /*
       burn#595f07bc query_id:uint64 amount:(VarUInteger 16)
                     response_destination:MsgAddress custom_payload:(Maybe ^Cell)
