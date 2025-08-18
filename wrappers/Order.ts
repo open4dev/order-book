@@ -72,6 +72,14 @@ export class Order implements Contract {
         });
     }
 
+    async sendCloseOrder(provider: ContractProvider, via: Sender, value: bigint) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(0x52e80bac, 32).endCell(),
+        });
+    }
+
     async getData(provider: ContractProvider) {
         let res = await provider.get('getData', []);
         var owner = res.stack.readAddress();

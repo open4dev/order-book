@@ -26,4 +26,23 @@ export class Vault implements Contract {
             body: beginCell().endCell(),
         });
     }
+
+    async getData(provider: ContractProvider) {
+        const { stack } = await provider.get('getData', []);
+        return {
+            amount: stack.readBigNumber(),
+            jettonMaster: stack.readAddress(),
+            randomHash_hex: stack.readBigNumber().toString(16),
+            vaultFactory: stack.readAddress(),
+            version: stack.readNumber()
+        };
+    }
+
+    async getCodes(provider: ContractProvider) {
+        const { stack } = await provider.get('getCodes', []);
+        return {
+            jettonWalletCode: stack.readCell(),
+            orderCode: stack.readCell()
+        };
+    }
 }

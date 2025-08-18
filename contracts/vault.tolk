@@ -1,3 +1,5 @@
+import "utils/generate_addresses"
+
 
 
 struct Storage {
@@ -41,7 +43,14 @@ struct ( 0x7d36e7d6 ) NotifyCloseOrder {
 struct ( 0x2717c4a2 ) InitVault {
 }
 
-type AllowedMessage = CreateOrder | VaultJettonTransfer | JettonTransferNotification | NotifyCloseOrder | InitVault
+struct ( 0xcaf5eaea ) InternalCloseOrder { // "InternalCloseOrder"c
+    orderOwner: address
+    toJettonMinter: address
+    toAmount: coins
+    fromAmount: coins
+}
+
+type AllowedMessage = CreateOrder | VaultJettonTransfer | JettonTransferNotification | NotifyCloseOrder | InitVault | InternalCloseOrder
 
 fun Storage.load() {
     return Storage.fromCell(contract.getData());
@@ -94,6 +103,44 @@ fun onInternalMessage(in: InMessage) {
 
             msgCreateOrder.send(SEND_MODE_REGULAR);
 
+            storage.save();
+
+            return;
+        }
+        InternalCloseOrder => {
+            var generatedOrderAddress: address = generateOrderAddress(
+                contract.getAddress(),
+                msg.orderOwner,
+                storage.jettonMaster,
+                msg.toJettonMinter,
+                msg.fromAmount,
+                msg.toAmount,
+                storage.orderCode
+            );
+            assert(generatedOrderAddress == in.senderAddress) throw 403;
+
+            var jettonWalletAddress: address = calculateJettonWalletAddress(storage.jettonWalletCode, storage.jettonMaster);
+
+            var msgSendTokens = createMessage({
+                bounce: false,
+                dest: jettonWalletAddress,
+                value: ton("0.1"),
+                body: beginCell()
+                    .storeUint(0xf8a7ea5, 32).storeUint(0, 64) // 0xf8a7ea5 op: transfer
+                    .storeCoins(msg.fromAmount)
+                    .storeAddress(msg.orderOwner)
+                    .storeAddress(msg.orderOwner)
+                    .storeUint(0, 2)
+                    .storeCoins(0)
+                    .storeUint(0, 1)
+            });
+
+            msgSendTokens.send(SEND_MODE_REGULAR);
+
+            debug.printString("Success close order");
+
+            storage.amount -= msg.fromAmount;
+            storage.save();
             return;
         }
         NotifyCloseOrder => {
@@ -175,4 +222,18 @@ fun calculateJettonWalletAddress(jettonWalletCode: cell, jettonMaster: address):
     .loadAddress();
 
     return jettonWalletAddress
+}
+
+
+get fun getData() {
+    var storage = Storage.parse(contract.getData());
+
+    return (storage.amount, storage.jettonMaster, storage.randomHash, storage.vault_factory, storage.version)
+}
+
+
+get fun getCodes() {
+    var storage = Storage.parse(contract.getData());
+
+    return (storage.jettonWalletCode, storage.orderCode)
 }

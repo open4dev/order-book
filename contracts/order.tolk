@@ -1,3 +1,5 @@
+import "utils/generate_addresses.tolk";
+
 struct ExchangeInfo {
     fromJettonMinter: address
     toJettonMinter: address
@@ -51,7 +53,9 @@ struct ( 0x47ff7e25 ) MatchOrder {
 }
 
 struct ( 0xdfe29f63 ) InternalMatchOrder {
-
+    anotherVault: address
+    anotherOrderOwner: address
+    matchExchangeInfo: Cell<MatchExchangeInfo>
 }
 
 struct ( 0x16424e8a ) SuccessVerifyOrder {
@@ -81,23 +85,59 @@ fun onInternalMessage(in: InMessage) {
             assert(matchExchangeInfo.fromAmount <= exchangeInfo.fromAmount) throw 47;
             assert(matchExchangeInfo.toAmount <= exchangeInfo.toAmount) throw 47;
 
-            var generatedOrderAddress = generateOrderAddress(msg.anotherVault, msg.anotherOrderOwner, exchangeInfo);
+            var generatedOrderAddress = generateOrderAddress(
+                msg.anotherVault,
+                msg.anotherOrderOwner,
+                exchangeInfo.toJettonMinter,
+                exchangeInfo.fromJettonMinter,
+                matchExchangeInfo.toAmount,
+                matchExchangeInfo.fromAmount,
+                contract.getCode()
+            );
 
             assert(generatedOrderAddress == msg.anotherOrder) throw 403;
-
-            
-
-
             debug.printString("Success match order");
             return;
         }
         InternalMatchOrder => {
+            var exchangeInfo = ExchangeInfo.parse(storage.exchangeInfo);
+            var matchExchangeInfo = MatchExchangeInfo.parse(msg.matchExchangeInfo);
+            assert(matchExchangeInfo.fromAmount <= exchangeInfo.fromAmount) throw 47;
+            assert(matchExchangeInfo.toAmount <= exchangeInfo.toAmount) throw 47;
+
+            var generatedOrderAddress = generateOrderAddress(
+                msg.anotherVault,
+                msg.anotherOrderOwner,
+                exchangeInfo.toJettonMinter,
+                exchangeInfo.fromJettonMinter,
+                matchExchangeInfo.toAmount,
+                matchExchangeInfo.fromAmount,
+                contract.getCode()
+            );
+
+            assert(generatedOrderAddress == in.senderAddress) throw 403;
+            debug.printString("Success match order");
             return;
         }
         SuccessVerifyOrder => {
             return;
         }
         CloseOrder => {
+            assert(in.senderAddress == storage.owner) throw 403;
+            var exchangeInfo = ExchangeInfo.parse(storage.exchangeInfo);
+            var msgCloseOrder = createMessage({
+                bounce: false,
+                dest: storage.vault,
+                value: ton("0.1"),
+                body: beginCell()
+                    .storeUint(0xcaf5eaea, 32)
+                    .storeAddress(storage.owner)
+                    .storeAddress(exchangeInfo.toJettonMinter)
+                    .storeCoins(exchangeInfo.toAmount)
+                    .storeCoins(exchangeInfo.fromAmount)
+                .endCell()
+            });
+            msgCloseOrder.send(SEND_MODE_CARRY_ALL_BALANCE + SEND_MODE_DESTROY);
             return;
         }
         InitOrder => {
@@ -116,38 +156,6 @@ fun onInternalMessage(in: InMessage) {
 //     return contract.setData(self.toCell())
 // }
 
-
-fun generateOrderAddress(anotherVault: address, anotherOrderOwner: address, exchangeInfo: ExchangeInfo) {
-    var anotherOrderInitDataExchangeInfo: cell = beginCell()
-        .storeAddress(exchangeInfo.toJettonMinter)
-        .storeAddress(exchangeInfo.fromJettonMinter)
-        .storeCoins(exchangeInfo.toAmount)
-        .storeCoins(exchangeInfo.fromAmount)
-    .endCell();
-    
-    var anotherOrderInitData = beginCell()
-        .storeAddress(anotherOrderOwner)
-        .storeAddress(anotherVault)
-        .storeRef(anotherOrderInitDataExchangeInfo)
-    .endCell();
-
-    var anotherOrderStateInitCell = beginCell()
-        .storeUint(0, 2)
-        .storeMaybeRef(contract.getCode())
-        .storeMaybeRef(anotherOrderInitData)
-        .storeUint(0, 1)
-    .endCell();
-
-    var anotherOrderAddress = beginCell()
-        .storeUint(4, 3)
-        .storeInt(BASECHAIN, 8)
-        .storeUint(anotherOrderStateInitCell.hash(), 256)
-    .endCell()
-    .beginParse()
-    .loadAddress();
-
-    return anotherOrderAddress;
-}
 
 get fun getData(): (address, address, cell) {
     var storage = Storage.parse();

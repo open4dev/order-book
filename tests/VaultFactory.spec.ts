@@ -262,4 +262,36 @@ describe('VaultFactory', () => {
 
         printTransactionFees(resultMatchOrder.transactions)
     });
+
+    it('should close order', async () => {
+        const fromAmount = await fromJettonWallet.getJettonBalance()
+        const toAmount = toNano(50)
+        const toJettonMinterAddress = toJettonMinter.address
+
+        const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
+            user1.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: fromAmount,
+                vault: fromVault.address,
+                owner: user1.address,
+                toAmount: toAmount,
+                toJettonMinter: toJettonMinterAddress,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        printTransactionFees(resultCreateOrder.transactions)
+        const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
+        console.log("fromOrder", await fromOrder.getData())
+
+        const vaultData = await fromVault.getData()
+        console.log("vaultData", vaultData)
+
+        const resultCloseOrder = await fromOrder.sendCloseOrder(user1.getSender(), toNano(0.5))
+        printTransactionFees(resultCloseOrder.transactions)
+
+        const vaultDataAfterClose = await fromVault.getData()
+        console.log("vaultDataAfterClose", vaultDataAfterClose)
+    })
+
 });
