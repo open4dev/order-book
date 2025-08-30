@@ -34,7 +34,6 @@ export class Vault implements Contract {
             jettonMaster: stack.readAddress(),
             randomHash_hex: stack.readBigNumber().toString(16),
             vaultFactory: stack.readAddress(),
-            version: stack.readNumber()
         };
     }
 

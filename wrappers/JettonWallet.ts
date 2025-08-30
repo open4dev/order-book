@@ -119,13 +119,13 @@ export class JettonWallet implements Contract {
         jettonAmount: bigint,
         vault: Address,
         owner: Address,
-        toAmount: bigint,
+        priceRate: bigint,
         toJettonMinter: Address,
         customPayload?: Cell | null,
         forwardTonAmount: bigint,
     }) {
         const forwardPayload = beginCell()
-            .storeCoins(params.toAmount)
+            .storeCoins(params.priceRate)
             .storeAddress(params.toJettonMinter)
             .endCell();
 

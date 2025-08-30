@@ -1,39 +1,32 @@
-fun generateOrderAddress(
+fun generateOrder(
     vault: address,
     orderOwner: address,
     fromJettonMinter: address,
     toJettonMinter: address,
-    fromAmount: coins,
-    toAmount: coins,
-    orderCode: cell
+    orderCode: cell,
+    createdAt: uint32
 ) {
     var orderInitDataExchangeInfo: cell = beginCell()
         .storeAddress(fromJettonMinter)
         .storeAddress(toJettonMinter)
-        .storeCoins(fromAmount)
-        .storeCoins(toAmount)
+        .storeCoins(0) // amount
+        .storeCoins(0) // priceRate
     .endCell();
     
     var orderInitData = beginCell()
+        // .storeBool(false)
         .storeAddress(orderOwner)
         .storeAddress(vault)
         .storeRef(orderInitDataExchangeInfo)
+        .storeUint(createdAt, 32)
     .endCell();
 
-    var orderStateInitCell = beginCell()
-        .storeUint(0, 2)
-        .storeMaybeRef(orderCode)
-        .storeMaybeRef(orderInitData)
-        .storeUint(0, 1)
-    .endCell();
+    var order = AutoDeployAddress {
+        stateInit: {
+            code: orderCode,
+            data: orderInitData
+        }
+    };
 
-    var orderAddress = beginCell()
-        .storeUint(4, 3)
-        .storeInt(BASECHAIN, 8)
-        .storeUint(orderStateInitCell.hash(), 256)
-    .endCell()
-    .beginParse()
-    .loadAddress();
-
-    return orderAddress;
+    return order;
 }

@@ -2,17 +2,27 @@ import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, 
 
 export type VaultFactoryConfig = {
     owner: Address;
-    vaultCode: Cell;
+    vaultCode1: Cell;
+    vaultCode2: Cell;
     orderCode: Cell;
-    commission: number;
+    comissionInfo: {
+        comission_num: number;
+        comission_denom: number;
+    };
 };
 
 export function vaultFactoryConfigToCell(config: VaultFactoryConfig): Cell {
     return beginCell()
     .storeAddress(config.owner)
-    .storeRef(config.vaultCode)
+    .storeRef(config.vaultCode1)
+    .storeRef(config.vaultCode2)
     .storeRef(config.orderCode)
-    .storeUint(config.commission, 14)
+    .storeRef(
+        beginCell()
+        .storeUint(config.comissionInfo.comission_num, 14)
+        .storeUint(config.comissionInfo.comission_denom, 14)
+        .endCell()
+    )
     .endCell();
 }
 
@@ -46,8 +56,8 @@ export class VaultFactory implements Contract {
             body: beginCell()
             .storeUint(0x64e90480, 32)
             .storeRef(jettonWalletCode)
+            .storeUint(version, 1)
             .storeAddress(jettonMaster)
-            .storeUint(version, 2)
             .endCell(),
         });
     }
@@ -63,13 +73,21 @@ export class VaultFactory implements Contract {
         });
     }
 
-    async sendChangeCommission(provider: ContractProvider, via: Sender, value: bigint, newCommission: number) {
+    async sendChangeCommission(provider: ContractProvider, via: Sender, value: bigint, newCommission: {
+        comission_num: number;
+        comission_denom: number;
+    }) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x4e86ed8b, 32)
-            .storeUint(newCommission, 14)
+            .storeRef(
+                beginCell()
+                .storeUint(newCommission.comission_num, 14)
+                .storeUint(newCommission.comission_denom, 14)
+                .endCell()
+            )
             .endCell(),
         });
     }
@@ -81,6 +99,9 @@ export class VaultFactory implements Contract {
 
     async getCommission(provider: ContractProvider) {
         const { stack } = await provider.get('getCommission', []);
-        return stack.readNumber();
+        return {
+            comission_num: stack.readNumber(),
+            comission_denom: stack.readNumber(),
+        };
     }
 }

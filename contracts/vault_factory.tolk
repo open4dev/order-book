@@ -1,11 +1,23 @@
 const MAX_COMMISSION = 20;
 
+struct ComissionInfo {
+    comission_num: uint14
+    comission_denom: uint14
+}
+
+struct VaultComissionInfo {
+    comissionNum: uint14
+    comissionDenom: uint14
+    feeAmount: coins
+}
+
 
 struct Storage {
     owner: address,
-    vaultCode: cell,
+    vaultCode1: cell,
+    vaultCode2: cell,
     orderCode: cell,
-    commission: uint14
+    comissionInfo: Cell<ComissionInfo>
 }
 
 @inline_ref
@@ -25,16 +37,16 @@ fun Storage.changeOwner(mutate self, newOwner: address): void {
     return contract.setData(self.serialize());
 }
 
-fun Storage.changeComission(mutate self, newComission: int): void {
-    self.commission = newComission;
+fun Storage.changeComission(mutate self, newComissionInfo: ComissionInfo): void {
+    self.comissionInfo = newComissionInfo.toCell();
     return contract.setData(self.serialize());
 }
 
 
 struct ( 0x64e90480 ) CreateVault { // "CreateVault"c
     jettonWalletCode: cell
+    version: uint1
     jettonMaster: address
-    version: uint2
 }
 
 struct ( 0xb6cf7f0f ) ChangeOwner { // "ChangeOwner"c
@@ -42,7 +54,7 @@ struct ( 0xb6cf7f0f ) ChangeOwner { // "ChangeOwner"c
 }
 
 struct ( 0x4e86ed8b ) ChangeCommission { // "ChangeCommission"c
-    newCommission: uint14,
+    newCommissionInfo: Cell<ComissionInfo>
 }
 
 struct ( 0x81e36595 ) InitVaultFactory { // "InitVaultFactory"c
@@ -65,13 +77,24 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         CreateVault => {
-            var autoDeployAddress = prepareInitVault(storage.orderCode, storage.vaultCode, msg.jettonWalletCode, msg.jettonMaster, msg.version);
+            var vaultCode = msg.version == 0 ? storage.vaultCode1 : storage.vaultCode2;
+            var autoDeployAddress = prepareInitVault(storage.orderCode, vaultCode, msg.jettonWalletCode, msg.jettonMaster);
+            
+
+            var comissionInfo = storage.comissionInfo!.load();
+            var vaultComissionInfo = VaultComissionInfo {
+                comissionNum: comissionInfo.comission_num,
+                comissionDenom: comissionInfo.comission_denom,
+                feeAmount: 0
+            };
+
             var reply = createMessage({
                 bounce: false,
                 dest: autoDeployAddress,
                 value: ton("0.1"),
                 body: beginCell()
                     .storeUint(0x2717c4a2, 32)
+                    .storeRef(vaultComissionInfo.toCell())
                 .endCell()
                 
             });
@@ -85,8 +108,7 @@ fun onInternalMessage(in: InMessage) {
         }
         ChangeCommission => {
             assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
-            val newCommission = msg.newCommission;
-            assert(newCommission >= 0 && newCommission <= 20) throw 422; // Check if the commission is valid
+            val newCommission = msg.newCommissionInfo.load();
             storage.changeComission(newCommission);
         }
         InitVaultFactory => {
@@ -101,16 +123,15 @@ fun prepareInitVault(
     vaultCode: cell,
     jettonWalletCode: cell,
     jettonMaster: address,
-    version: uint2
 ): AutoDeployAddress {
     val contractData = beginCell()
         .storeAddress(contract.getAddress())
-        .storeUint(version, 2) // Version jetton wallet
         .storeRef(jettonWalletCode)
         .storeAddress(jettonMaster)
         .storeUint(random.uint256(), 256)
         .storeUint(0, 128)
         .storeRef(orderCode)
+        .storeMaybeRef(null)
     .endCell();
 
     var autoDeployAddress = AutoDeployAddress{ 
@@ -128,7 +149,8 @@ get fun getOwner(): address {
     return storage.owner;
 }
 
-get fun getCommission(): uint14 {
+get fun getCommission(): (uint14, uint14) {
     var storage = Storage.parse(contract.getData());
-    return storage.commission;
+    var comissionInfo = storage.comissionInfo.load();
+    return (comissionInfo.comission_num, comissionInfo.comission_denom);
 }

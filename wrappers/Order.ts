@@ -15,8 +15,8 @@ export type OrderData = {
 export type ExchangeInfo = {
     fromJettonMinter: Address;
     toJettonMinter: Address;
-    fromAmount: bigint;
-    toAmount: bigint;
+    amount: bigint;
+    priceRate: bigint;
 }
 
 export class Order implements Contract {
@@ -44,20 +44,18 @@ export class Order implements Contract {
         anotherVault: Address,
         anotherOrderOwner: Address,
         anotherOrder: Address,
-        fromAmount: bigint,
-        toAmount: bigint,
+        createdAt: number,
     }) {
 
         // anotherVault: address
         // anotherOrderOwner: address
         // anotherOrder: address
-        // fromAmount: coins
-        // toAmount: coins
+        // amount: coins
 
-        var matchExchangeInfo = beginCell()
-            .storeCoins(params.fromAmount)
-            .storeCoins(params.toAmount)
-            .endCell();
+        // var matchExchangeInfo = beginCell()
+        //     .storeCoins(params.amount)
+        //     .storeCoins(params.priceRate)
+        //     .endCell();
 
         await provider.internal(via, {
             value,
@@ -67,7 +65,8 @@ export class Order implements Contract {
             .storeAddress(params.anotherVault)
             .storeAddress(params.anotherOrderOwner)
             .storeAddress(params.anotherOrder)
-            .storeRef(matchExchangeInfo)
+            // .storeRef(matchExchangeInfo)
+            .storeUint(params.createdAt, 32)
             .endCell(),
         });
     }
@@ -88,13 +87,14 @@ export class Order implements Contract {
         var exchangeInfo = {
             fromJettonMinter: exchangeInfoCell.loadAddress(),
             toJettonMinter: exchangeInfoCell.loadAddress(),
-            fromAmount: exchangeInfoCell.loadCoins(),
-            toAmount: exchangeInfoCell.loadCoins(),
+            amount: exchangeInfoCell.loadCoins(),
+            priceRate: exchangeInfoCell.loadCoins(),
         };
         var result = {
             owner: owner,
             vault: vault,
             exchangeInfo: exchangeInfo,
+            createdAt: res.stack.readNumber(),
         };
         return result;
     }
