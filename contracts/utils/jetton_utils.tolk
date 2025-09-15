@@ -1,19 +1,21 @@
-fun sendJettonTransfer(queryId: uint64, jettonAmount: coins, to: address, destination: address, responseDestination: address?, forwardTonAmount: coins?, forwardPayload: cell?) {
+fun sendJettonTransfer(queryId: uint64, fromJettonWallet: AutoDeployAddress, jettonAmount: coins, to: address, responseDestination: address, value: coins, sendMode: int) {
     // transfer#0f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
     //  response_destination:MsgAddress custom_payload:(Maybe ^Cell)
     //  forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
     //  = InternalMsgBody;
-    var jettonTransferBody = beginCell()
-    .storeUint(queryId, 64)
-    .storeCoins(jettonAmount)
-    .storeAddress(destination);
-
-    var msg = createMessage({
+    var msgSendTokens = createMessage({
         bounce: false,
-        dest: to,
-        value: ton("0.05"),
-        body: jettonTransferBody
+        dest: fromJettonWallet,
+        value: value,
+        body: beginCell()
+            .storeUint(0xf8a7ea5, 32).storeUint(queryId, 64) // 0xf8a7ea5 op: transfer
+            .storeCoins(jettonAmount)
+            .storeAddress(to)
+            .storeAddress(responseDestination)
+            .storeUint(0, 2)
+            .storeCoins(0)
+            .storeUint(0, 1)
     });
 
-    msg.send(SEND_MODE_REGULAR);
+    msgSendTokens.send(sendMode);
 }

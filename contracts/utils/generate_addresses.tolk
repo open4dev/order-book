@@ -1,20 +1,20 @@
 fun generateOrder(
     vault: address,
     orderOwner: address,
-    fromJettonMinter: address,
-    toJettonMinter: address,
+    fromJetton: cell?,
+    toJetton: cell?,
     orderCode: cell,
     createdAt: uint32
 ) {
     var orderInitDataExchangeInfo: cell = beginCell()
-        .storeAddress(fromJettonMinter)
-        .storeAddress(toJettonMinter)
+        .storeMaybeRef(fromJetton)
+        .storeMaybeRef(toJetton)
         .storeCoins(0) // amount
         .storeCoins(0) // priceRate
+        .storeUint(0, 30) // slippage
     .endCell();
     
     var orderInitData = beginCell()
-        // .storeBool(false)
         .storeAddress(orderOwner)
         .storeAddress(vault)
         .storeRef(orderInitDataExchangeInfo)
@@ -29,4 +29,21 @@ fun generateOrder(
     };
 
     return order;
+}
+
+fun generateMatcherFeeCollector(vault: address, matcher: address, matcherFeeCollectorCode: cell): AutoDeployAddress {
+    var matcherFeeCollectorData: cell = beginCell()
+        .storeAddress(vault)
+        .storeAddress(matcher)
+        .storeCoins(0)
+    .endCell();
+
+    var matcherFeeCollector = AutoDeployAddress {
+        stateInit: {
+            code: matcherFeeCollectorCode,
+            data: matcherFeeCollectorData
+        }
+    };
+
+    return matcherFeeCollector;
 }

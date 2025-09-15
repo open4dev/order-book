@@ -79,16 +79,44 @@ export class Order implements Contract {
         });
     }
 
+        // struct JettonInfo {
+        //     jettonMinter: address
+        // }
+
+        // struct ExchangeInfo {
+        //     from: Cell<JettonInfo>?
+        //     to: Cell<JettonInfo>?
+        //     amount: coins
+        //     priceRate: coins
+        //     slippage: uint30
+        // }
+
     async getData(provider: ContractProvider) {
         let res = await provider.get('getData', []);
         var owner = res.stack.readAddress();
         var vault = res.stack.readAddress();
         var exchangeInfoCell = res.stack.readCell().asSlice();
+
+        var fromJettonAddress = null;
+
+        var fromJetton = exchangeInfoCell.loadMaybeRef();
+        if (fromJetton != null) {
+            fromJettonAddress = fromJetton.beginParse().loadAddress();
+        }
+
+        var toJettonAddress = null;
+
+        var toJetton = exchangeInfoCell.loadMaybeRef();
+        if (toJetton != null) {
+            toJettonAddress = toJetton.beginParse().loadAddress();
+        }
+
         var exchangeInfo = {
-            fromJettonMinter: exchangeInfoCell.loadAddress(),
-            toJettonMinter: exchangeInfoCell.loadAddress(),
+            fromJettonMinter: fromJettonAddress,
+            toJettonMinter: toJettonAddress,
             amount: exchangeInfoCell.loadCoins(),
             priceRate: exchangeInfoCell.loadCoins(),
+            slippage: exchangeInfoCell.loadUint(30),
         };
         var result = {
             owner: owner,

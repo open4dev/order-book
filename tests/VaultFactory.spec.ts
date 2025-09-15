@@ -9,6 +9,7 @@ import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
 import { Vault } from '../wrappers/Vault';
 import { Vault2 } from '../wrappers/Vault2';
 import { Order } from '../wrappers/Order';
+import { MatcherFeeCollector } from '../wrappers/MatcherFeeCollector';
 
 
 function getJettonWalletWrapper(blockchain: Blockchain, trs: SendMessageResult, jettonMinter: Address)  {
@@ -21,7 +22,7 @@ function getJettonWalletWrapper(blockchain: Blockchain, trs: SendMessageResult, 
     return jettonWallet;
 }
 
-function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultFactory: Address)  {
+function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult)  {
     const vaultDeployTrs = trs.transactions.find((e) => {
         const tx = flattenTransaction(e);
         return tx.op == 0x2717c4a2;
@@ -29,6 +30,23 @@ function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultFa
     const vault = blockchain.openContract(Vault.createFromAddress(flattenTransaction(vaultDeployTrs!).to!));
     
     return vault;
+}
+
+function getMatcherFeeCollectorWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
+    const matcherFeeCollectorDeployTrs = trs.transactions.find((e) => {
+        const tx = flattenTransaction(e);
+        // return (tx.op == 0xfc7532f4 && tx.from!.equals(vaultAddress));
+        return tx.from?.toRawString() == vaultAddress.toRawString();
+
+    });
+    
+    if (!matcherFeeCollectorDeployTrs) {
+        throw new Error('MatcherFeeCollector deployment transaction not found');
+    }
+    
+    const matcherFeeCollector = blockchain.openContract(MatcherFeeCollector.createFromAddress(flattenTransaction(matcherFeeCollectorDeployTrs).to!));
+    
+    return matcherFeeCollector;
 }
 
 function getOrderWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
@@ -58,6 +76,7 @@ describe('VaultFactory', () => {
     let toJettonMinter: SandboxContract<JettonMinter>
     let toJettonWallet: SandboxContract<JettonWallet>
     let toVault: SandboxContract<Vault>
+    let fromVaultTon: SandboxContract<Vault>
 
     let user1: SandboxContract<TreasuryContract>;
     let user2: SandboxContract<TreasuryContract>;
@@ -71,17 +90,21 @@ describe('VaultFactory', () => {
 
         vaultFactory = blockchain.openContract(VaultFactory.createFromConfig({
             owner: deployer.address,
-            vaultCode1: await compile('Vault'),
-            vaultCode2: await compile('Vault2'),
+            vaultCode: await compile('Vault'),
             orderCode: await compile('Order'),
+            matcherFeeCollectorCode: await compile('MatcherFeeCollector'),
             comissionInfo: {
-                comission_num: 10,
+                comission_num: 2,
+                comission_denom: 100,
+            },
+            comissionInfoMatcher: {
+                comission_num: 1,
                 comission_denom: 100,
             },
         }, code));
 
 
-        const deployResult = await vaultFactory.sendDeploy(deployer.getSender(), toNano('0.05'));
+        const deployResult = await vaultFactory.sendDeploy(deployer.getSender(), toNano('0.1'));
 
         expect(deployResult.transactions).toHaveTransaction({
             from: deployer.address,
@@ -115,12 +138,31 @@ describe('VaultFactory', () => {
 
 
         const resultUser1FromJettonWalletMint = await fromJettonMinter.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined)
+        console.log("FromJettonMinter TRS")
+        printTransactionFees(resultUser1FromJettonWalletMint.transactions)
 
         fromJettonWallet = getJettonWalletWrapper(blockchain, resultUser1FromJettonWalletMint, fromJettonMinter.address)
 
-        const resultCreateVaultFrom = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(1), jettonWalletCodeCell, fromJettonMinter.address, 0)
+        const resultCreateVaultFrom = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(0.0065 + 0.0019 + 0.01), jettonWalletCodeCell, fromJettonMinter.address)
 
-        fromVault = getVaultWrapper(blockchain, resultCreateVaultFrom, fromJettonMinter.address)
+        console.log("fromVault TRS")
+
+        printTransactionFees(resultCreateVaultFrom.transactions)
+
+        fromVault = getVaultWrapper(blockchain, resultCreateVaultFrom)
+
+        const resultCreateFromVaultTon = await vaultFactory.sendCreateVault(
+            deployer.getSender(),
+            toNano(1),
+            null,
+            null
+        )
+
+        fromVaultTon = getVaultWrapper(blockchain, resultCreateFromVaultTon)
+
+        console.log("fromVaultTon TRS")
+
+        printTransactionFees(resultCreateFromVaultTon.transactions)
 
 
         const toJettonMinterContent: JettonMinterContent = {
@@ -149,35 +191,44 @@ describe('VaultFactory', () => {
 
         const resultUser2ToJettonWalletMint = await toJettonMinter.sendMint(deployer.getSender(), user2.address, toNano(100), null, null, null, undefined, undefined)
 
+        console.log("ToJettonMinter TRS")
+        printTransactionFees(resultUser2ToJettonWalletMint.transactions)
+
         toJettonWallet = getJettonWalletWrapper(blockchain, resultUser2ToJettonWalletMint, toJettonMinter.address)
 
-        const resultCreateVaultTo = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(1), jettonWalletCodeCell, toJettonMinter.address, 0)
+        const resultCreateVaultTo = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(1), jettonWalletCodeCell, toJettonMinter.address)
 
-        toVault = getVaultWrapper(blockchain, resultCreateVaultTo, toJettonMinter.address)
+        console.log("toVault TRS")
+
+        printTransactionFees(resultCreateVaultTo.transactions)
+
+        toVault = getVaultWrapper(blockchain, resultCreateVaultTo)
         console.log(toVault.address)
 
     });
 
     it('should deploy vault', async () => {
-        const deployResultVault = await vaultFactory.sendCreateVault(deployer.getSender(), toNano('1'), beginCell().endCell(), randomAddress(), 0);
-        const vault = getVaultWrapper(blockchain, deployResultVault, vaultFactory.address)
+        const deployResultVault = await vaultFactory.sendCreateVault(deployer.getSender(), toNano('1'), beginCell().endCell(), randomAddress());
+        const vault = getVaultWrapper(blockchain, deployResultVault)
         printTransactionFees(deployResultVault.transactions)
         console.log(await vault.getData())
     });
 
     it('should change owner', async () => {
         const oldOwner = await vaultFactory.getOwner();
-        const changeOwnerResult = await vaultFactory.sendChangeOwner(deployer.getSender(), toNano('0.05'), user1.address);
+        const changeOwnerResult = await vaultFactory.sendChangeOwner(deployer.getSender(), toNano('0.0015'), user1.address);
+        printTransactionFees(changeOwnerResult.transactions)
         const newOwner = await vaultFactory.getOwner();
         expect(oldOwner).not.toBe(newOwner);
     });
 
     it('should change commission', async () => {
         const oldCommission = await vaultFactory.getCommission();
-        const changeCommissionResult = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano('0.05'), {
-            comission_num: 0,
-            comission_denom: 0,
+        const changeCommissionResult = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano('0.002'), {
+            comission_num: 1,
+            comission_denom: 5,
         });
+        printTransactionFees(changeCommissionResult.transactions)
         const newCommission = await vaultFactory.getCommission();
         expect(oldCommission.comission_num).not.toBe(newCommission.comission_num);
         expect(oldCommission.comission_denom).not.toBe(newCommission.comission_denom);
@@ -190,14 +241,15 @@ describe('VaultFactory', () => {
         
         const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
             user1.getSender(),
-            toNano(0.5),
+            toNano(0.14),
             {
                 jettonAmount: amount,
                 vault: fromVault.address,
                 owner: user1.address,
                 priceRate: priceRate,
+                slippage: toNano(0.01),
                 toJettonMinter: toJettonMinterAddress,
-                forwardTonAmount: toNano(0.1)
+                forwardTonAmount: toNano(0.09)
             }
         )
         printTransactionFees(resultCreateOrder.transactions)
@@ -208,13 +260,13 @@ describe('VaultFactory', () => {
 
         expect(orderData.exchangeInfo.amount).toBe(amount)
         expect(orderData.exchangeInfo.priceRate).toBe(priceRate)
-        expect(orderData.exchangeInfo.fromJettonMinter.toRawString()).toBe(fromJettonMinter.address.toRawString())
-        expect(orderData.exchangeInfo.toJettonMinter.toRawString()).toBe(toJettonMinter.address.toRawString())
+        expect(orderData.exchangeInfo.fromJettonMinter!.toRawString()).toBe(fromJettonMinter.address.toRawString())
+        expect(orderData.exchangeInfo.toJettonMinter!.toRawString()).toBe(toJettonMinter.address.toRawString())
         expect(orderData.owner.toRawString()).toBe(user1.address.toRawString())
         expect(orderData.vault.toRawString()).toBe(fromVault.address.toRawString())
     });
 
-    it('should match order', async () => {
+    it('should match order jetton-jetton', async () => {
         console.log("Before fromJettonWallet", await fromJettonWallet.getWalletData())
         console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
         const toJettonMinterAddress = toJettonMinter.address
@@ -226,11 +278,13 @@ describe('VaultFactory', () => {
                 jettonAmount: toNano(100),
                 vault: fromVault.address,
                 owner: user1.address,
-                priceRate: toNano(0.1),
+                priceRate: toNano(1.01),
+                slippage: toNano(0.02),
                 toJettonMinter: toJettonMinterAddress,
                 forwardTonAmount: toNano(0.1)
             }
         )
+        console.log("JETTON fromOrder TRS")
         printTransactionFees(resultCreateOrder.transactions)
         const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
 
@@ -244,22 +298,26 @@ describe('VaultFactory', () => {
             user2.getSender(),
             toNano(0.5),
             {
-                jettonAmount: toNano(20),
+                jettonAmount: toNano(10),
                 vault: toVault.address,
                 owner: user2.address,
-                priceRate: toPriceRate,
+                priceRate: toNano(1),
+                slippage: toNano(0.02),
                 toJettonMinter: toFromJettonMinterAddress,
                 forwardTonAmount: toNano(0.1)
             }
         )
+        console.log("JETTON toOrder TRS")
         printTransactionFees(resultCreateToOrder.transactions)
         const toOrder = getOrderWrapper(blockchain, resultCreateToOrder, toVault.address)
 
         console.log(await toOrder.getData())
 
+        console.log("Before match order")
+
         const resultMatchOrder = await fromOrder.sendMatchOrder(
             user1.getSender(),
-            toNano(0.5),
+            toNano(1),
             {
                 anotherVault: toVault.address,
                 anotherOrderOwner: user2.address,
@@ -296,6 +354,7 @@ describe('VaultFactory', () => {
                 vault: fromVault.address,
                 owner: user1.address,
                 priceRate: toAmount,
+                slippage: toNano(0.01),
                 toJettonMinter: toJettonMinterAddress,
                 forwardTonAmount: toNano(0.1)
             }
@@ -307,11 +366,292 @@ describe('VaultFactory', () => {
         const vaultData = await fromVault.getData()
         console.log("vaultData", vaultData)
 
-        const resultCloseOrder = await fromOrder.sendCloseOrder(user1.getSender(), toNano(0.5))
+        const resultCloseOrder = await fromOrder.sendCloseOrder(user1.getSender(), toNano(1))
         printTransactionFees(resultCloseOrder.transactions)
 
         const vaultDataAfterClose = await fromVault.getData()
         console.log("vaultDataAfterClose", vaultDataAfterClose)
     })
+
+    it('should match order ton-jetton', async () => {
+        console.log("Before fromJettonWallet", await fromJettonWallet.getWalletData())
+        console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
+        const resultCreateOrder = await fromVaultTon.sendCreateOrder(
+            user1.getSender(),
+            toNano(10),
+            {
+                amount: toNano(9.9),
+                priceRate: toNano(2),
+                slippage: toNano(0.02),
+                toJettonMinter: toJettonMinter.address
+            }
+        )
+        printTransactionFees(resultCreateOrder.transactions)
+        const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
+
+        console.log(await fromOrder.getData())
+
+
+        const resultCreateToOrder = await toJettonWallet.sendCreateOrder(
+            user2.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: toNano(18),
+                vault: toVault.address,
+                owner: user2.address,
+                priceRate: toNano(0.5),
+                slippage: toNano(0.02),
+                toJettonMinter: null,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        printTransactionFees(resultCreateToOrder.transactions)
+        const toOrder = getOrderWrapper(blockchain, resultCreateToOrder, toVault.address)
+
+        console.log(await toOrder.getData())
+
+        const resultMatchOrder = await fromOrder.sendMatchOrder(
+            user1.getSender(),
+            toNano(1),
+            {
+                anotherVault: toVault.address,
+                anotherOrderOwner: user2.address,
+                anotherOrder: toOrder.address,
+                createdAt: (await toOrder.getData()).createdAt
+            }
+        )
+
+        printTransactionFees(resultMatchOrder.transactions)
+
+        console.log("amount FromOrder after match", await fromOrder.getData())
+        console.log("amount ToOrder after match", await toOrder.getData())
+
+        console.log("amount from vault", await fromVaultTon.getData())
+        console.log("amount to vault", await toVault.getData())
+
+        console.log("FromVault address", fromVaultTon.address)
+        console.log("ToVault address", toVault.address)
+
+    });
+
+    it('should match order jetton-ton', async () => {
+        console.log("Before fromJettonWallet", await fromJettonWallet.getWalletData())
+        console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
+        const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
+            user1.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: toNano(9),
+                vault: fromVault.address,
+                owner: user1.address,
+                priceRate: toNano(2),
+                slippage: toNano(0.02),
+                toJettonMinter: null,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        printTransactionFees(resultCreateOrder.transactions)
+        const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
+
+        console.log(await fromOrder.getData())
+
+
+        const resultCreateToOrder = await fromVaultTon.sendCreateOrder(
+            user2.getSender(),
+            toNano(19),
+            {
+                amount: toNano(18.9),
+                priceRate: toNano(0.5),
+                slippage: toNano(0.02),
+                toJettonMinter: fromJettonMinter.address,
+            }
+        )
+        printTransactionFees(resultCreateToOrder.transactions)
+        const toOrder = getOrderWrapper(blockchain, resultCreateToOrder, fromVaultTon.address)
+
+        console.log(await toOrder.getData())
+
+        const resultMatchOrder = await fromOrder.sendMatchOrder(
+            user1.getSender(),
+            toNano(1),
+            {
+                anotherVault: fromVaultTon.address,
+                anotherOrderOwner: user2.address,
+                anotherOrder: toOrder.address,
+                createdAt: (await toOrder.getData()).createdAt
+            }
+        )
+
+        printTransactionFees(resultMatchOrder.transactions)
+
+        console.log("amount FromOrder after match", await fromOrder.getData())
+        console.log("amount ToOrder after match", await toOrder.getData())
+
+        console.log("amount from vault", await fromVaultTon.getData())
+        console.log("amount to vault", await toVault.getData())
+
+        console.log("FromVault address", fromVaultTon.address)
+        console.log("ToVault address", toVault.address)
+
+    });
+
+    it('should match order jetton-jetton & WithDraw', async () => {
+        console.log("Before fromJettonWallet", await fromJettonWallet.getWalletData())
+        console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
+        const toJettonMinterAddress = toJettonMinter.address
+        
+        const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
+            user1.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: toNano(100),
+                vault: fromVault.address,
+                owner: user1.address,
+                priceRate: toNano(1.01),
+                slippage: toNano(0.02),
+                toJettonMinter: toJettonMinterAddress,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        console.log("JETTON fromOrder TRS")
+        printTransactionFees(resultCreateOrder.transactions)
+        const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
+
+        console.log(await fromOrder.getData())
+
+
+        const toPriceRate = toNano(2)
+        const toFromJettonMinterAddress = fromJettonMinter.address
+        
+        const resultCreateToOrder = await toJettonWallet.sendCreateOrder(
+            user2.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: toNano(10),
+                vault: toVault.address,
+                owner: user2.address,
+                priceRate: toNano(1),
+                slippage: toNano(0.02),
+                toJettonMinter: toFromJettonMinterAddress,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        console.log("JETTON toOrder TRS")
+        printTransactionFees(resultCreateToOrder.transactions)
+        const toOrder = getOrderWrapper(blockchain, resultCreateToOrder, toVault.address)
+
+        console.log(await toOrder.getData())
+
+        console.log("Before match order")
+
+        const resultMatchOrder = await fromOrder.sendMatchOrder(
+            user1.getSender(),
+            toNano(1),
+            {
+                anotherVault: toVault.address,
+                anotherOrderOwner: user2.address,
+                anotherOrder: toOrder.address,
+                createdAt: (await toOrder.getData()).createdAt
+            }
+        )
+
+        printTransactionFees(resultMatchOrder.transactions)
+
+        // console.log("amount FromOrder after match", await fromOrder.getData())
+        // console.log("amount ToOrder after match", await toOrder.getData())
+
+        // console.log("amount from vault", await fromVault.getData())
+        // console.log("amount to vault", await toVault.getData())
+
+        // console.log("FromVault address", fromVault.address)
+        // console.log("ToVault address", toVault.address)
+
+        // console.log("After fromJettonWallet", await fromJettonWallet.getWalletData())
+        // console.log("After toJettonWallet", await toJettonWallet.getWalletData())
+
+        console.log("Before withDraw")
+        console.log("FromVault balance", await fromVault.getData())
+        const resultWithDraw = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.07 + 0.07), fromVault.address)
+        printTransactionFees(resultWithDraw.transactions)
+        console.log("After withDraw")
+        console.log("FromVault balance", await fromVault.getData())
+
+    });
+
+    it('should match order jetton-ton & WithDraw', async () => {
+        console.log("Before fromJettonWallet", await fromJettonWallet.getWalletData())
+        console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
+        const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
+            user1.getSender(),
+            toNano(0.5),
+            {
+                jettonAmount: toNano(9),
+                vault: fromVault.address,
+                owner: user1.address,
+                priceRate: toNano(2),
+                slippage: toNano(0.02),
+                toJettonMinter: null,
+                forwardTonAmount: toNano(0.1)
+            }
+        )
+        printTransactionFees(resultCreateOrder.transactions)
+        const fromOrder = getOrderWrapper(blockchain, resultCreateOrder, fromVault.address)
+
+        console.log(await fromOrder.getData())
+
+
+        const resultCreateToOrder = await fromVaultTon.sendCreateOrder(
+            user2.getSender(),
+            toNano(19),
+            {
+                amount: toNano(18.9),
+                priceRate: toNano(0.5),
+                slippage: toNano(0.02),
+                toJettonMinter: fromJettonMinter.address,
+            }
+        )
+        printTransactionFees(resultCreateToOrder.transactions)
+        const toOrder = getOrderWrapper(blockchain, resultCreateToOrder, fromVaultTon.address)
+
+        console.log(await toOrder.getData())
+
+        const resultMatchOrder = await fromOrder.sendMatchOrder(
+            user1.getSender(),
+            toNano(1),
+            {
+                anotherVault: fromVaultTon.address,
+                anotherOrderOwner: user2.address,
+                anotherOrder: toOrder.address,
+                createdAt: (await toOrder.getData()).createdAt
+            }
+        )
+
+        printTransactionFees(resultMatchOrder.transactions)
+
+        // console.log("amount FromOrder after match", await fromOrder.getData())
+        // console.log("amount ToOrder after match", await toOrder.getData())
+
+        console.log("amount from vault", await fromVaultTon.getData())
+        console.log("amount to vault", await toVault.getData())
+
+        console.log("FromVault address", fromVaultTon.address)
+        console.log("ToVault address", toVault.address)
+
+        console.log("WithDraw")
+        const resultWithDraw = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.07 + 0.07), fromVaultTon.address)
+        printTransactionFees(resultWithDraw.transactions)
+        console.log("After withDraw")
+        console.log("FromVault balance", await fromVaultTon.getData())
+
+        const matcherFeeCollectorFromVaultTon = getMatcherFeeCollectorWrapper(blockchain, resultMatchOrder, fromVaultTon.address)
+        console.log("WithDraw Matcher")
+        const resultWithDrawMatcheFromVaultTon = await matcherFeeCollectorFromVaultTon.sendWithDraw(user1.getSender(), toNano(0.07 + 0.07))
+        printTransactionFees(resultWithDrawMatcheFromVaultTon.transactions)
+
+        const matcherFeeCollectorFromVault = getMatcherFeeCollectorWrapper(blockchain, resultMatchOrder, fromVault.address)
+        console.log("WithDraw Matcher")
+        const resultWithDrawMatcherFromVault = await matcherFeeCollectorFromVault.sendWithDraw(user1.getSender(), toNano(0.07 + 0.07))
+        printTransactionFees(resultWithDrawMatcherFromVault.transactions)
+    });
 
 });

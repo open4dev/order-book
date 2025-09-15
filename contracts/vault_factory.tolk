@@ -1,4 +1,8 @@
+import "utils/fees"
+
 const MAX_COMMISSION = 20;
+const MAX_COMMISSION_MATCHER = 5;
+
 
 struct ComissionInfo {
     comission_num: uint14
@@ -11,13 +15,18 @@ struct VaultComissionInfo {
     feeAmount: coins
 }
 
+struct CodesInfo {
+    vaultCode: cell
+    orderCode: cell
+    matcherFeeCollectorCode: cell
+}
 
 struct Storage {
     owner: address,
-    vaultCode1: cell,
-    vaultCode2: cell,
-    orderCode: cell,
+    codesInfo: Cell<CodesInfo>,
     comissionInfo: Cell<ComissionInfo>
+    comissionInfoMatcher: Cell<ComissionInfo>
+    
 }
 
 @inline_ref
@@ -37,16 +46,14 @@ fun Storage.changeOwner(mutate self, newOwner: address): void {
     return contract.setData(self.serialize());
 }
 
-fun Storage.changeComission(mutate self, newComissionInfo: ComissionInfo): void {
-    self.comissionInfo = newComissionInfo.toCell();
-    return contract.setData(self.serialize());
+
+struct JettonInfo {
+    jettonMinter: address
 }
 
-
 struct ( 0x64e90480 ) CreateVault { // "CreateVault"c
-    jettonWalletCode: cell
-    version: uint1
-    jettonMaster: address
+    jettonWalletCode: cell?
+    fromJetton: Cell<JettonInfo>?
 }
 
 struct ( 0xb6cf7f0f ) ChangeOwner { // "ChangeOwner"c
@@ -57,10 +64,18 @@ struct ( 0x4e86ed8b ) ChangeCommission { // "ChangeCommission"c
     newCommissionInfo: Cell<ComissionInfo>
 }
 
+struct ( 0xdb3ac0d8 ) ChangeCommissionMatcher { // "ChangeCommissionMatcher"c
+    newCommissionInfo: Cell<ComissionInfo>
+}
+
 struct ( 0x81e36595 ) InitVaultFactory { // "InitVaultFactory"c
 }
 
-type AllowedMessage = CreateVault | ChangeOwner | ChangeCommission | InitVaultFactory
+struct ( 0xec9a92f6 ) WithDraw {
+    vaultAddress: address
+}
+
+type AllowedMessage = CreateVault | ChangeOwner | ChangeCommission | ChangeCommissionMatcher | InitVaultFactory | WithDraw
 
 fun Storage.load() {
     return Storage.fromCell(contract.getData());
@@ -73,15 +88,23 @@ fun Storage.save(self) {
 fun onInternalMessage(in: InMessage) {
     var storage = Storage.parse(contract.getData());
 
+
+    
     var msg = AllowedMessage.fromSlice(in.body);
 
     match (msg) {
         CreateVault => {
-            var vaultCode = msg.version == 0 ? storage.vaultCode1 : storage.vaultCode2;
-            var autoDeployAddress = prepareInitVault(storage.orderCode, vaultCode, msg.jettonWalletCode, msg.jettonMaster);
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw 422;
+
+            var comissionInfo = storage.comissionInfo.load();
+            assert(mulDivRound(comissionInfo.comission_num, 100, comissionInfo.comission_denom) <= MAX_COMMISSION) throw 422;
+            var comissionInfoMatcher = storage.comissionInfoMatcher.load();
+            assert(mulDivRound(comissionInfoMatcher.comission_num, 100, comissionInfoMatcher.comission_denom) <= MAX_COMMISSION_MATCHER) throw 422;
+
+            var codesInfo = storage.codesInfo.load();
+            var autoDeployAddress = prepareInitVault(codesInfo.orderCode, codesInfo.vaultCode, codesInfo.matcherFeeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
             
 
-            var comissionInfo = storage.comissionInfo!.load();
             var vaultComissionInfo = VaultComissionInfo {
                 comissionNum: comissionInfo.comission_num,
                 comissionDenom: comissionInfo.comission_denom,
@@ -91,46 +114,84 @@ fun onInternalMessage(in: InMessage) {
             var reply = createMessage({
                 bounce: false,
                 dest: autoDeployAddress,
-                value: ton("0.1"),
+                value: GAS_VAULT_INIT + GAS_STORAGE,
                 body: beginCell()
                     .storeUint(0x2717c4a2, 32)
                     .storeRef(vaultComissionInfo.toCell())
+                    .storeRef(storage.comissionInfoMatcher)
                 .endCell()
                 
             });
-            reply.send(SEND_MODE_REGULAR);
+            reply.send(SEND_MODE_PAY_FEES_SEPARATELY);
             return;
         }
         ChangeOwner => {
             assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_CHANGE_OWNER) throw 422;
             val newOwner = msg.newOwner;
-            storage.changeOwner(newOwner);
+            storage.owner = newOwner;
+            storage.save();
         }
         ChangeCommission => {
             assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_CHANGE_COMMISSION) throw 422;
             val newCommission = msg.newCommissionInfo.load();
-            storage.changeComission(newCommission);
+            assert(mulDivRound(newCommission.comission_num, 100, newCommission.comission_denom) <= MAX_COMMISSION) throw 422;
+            storage.comissionInfo = newCommission.toCell();
+            storage.save();
+        }
+        ChangeCommissionMatcher => {
+            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_CHANGE_COMMISSION) throw 422;
+            val newCommission = msg.newCommissionInfo.load();
+            assert(mulDivRound(newCommission.comission_num, 100, newCommission.comission_denom) <= MAX_COMMISSION_MATCHER) throw 422;
+            storage.comissionInfoMatcher = newCommission.toCell();
+            storage.save();
         }
         InitVaultFactory => {
+            assert(in.valueCoins >= GAS_STORAGE) throw 422;
+            return;
+        }
+        WithDraw => {
+            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_WITHDRAW + GAS_VAULT_WITHDRAW + GAS_JETTON_WALLET_TRANSFER) throw 422;
+            sendWithDraw(msg.vaultAddress, storage.owner);
             return;
         }
     }
+}
+
+fun sendWithDraw(vaultAddress: address, owner: address): void {
+    var msgWithDraw = createMessage({
+        bounce: false,
+        dest: vaultAddress,
+        value: GAS_VAULT_WITHDRAW + GAS_JETTON_WALLET_TRANSFER,
+        body: beginCell()
+            .storeUint(0xec9a92f6, 32)
+            .storeAddress(owner)
+            .endCell()
+    });
+    msgWithDraw.send(SEND_MODE_PAY_FEES_SEPARATELY);
 }
 
 
 fun prepareInitVault(
     orderCode: cell,
     vaultCode: cell,
-    jettonWalletCode: cell,
-    jettonMaster: address,
+    matcherFeeCollectorCode: cell,
+    jettonWalletCode: cell?,
+    fromJetton: cell?,
 ): AutoDeployAddress {
+
+    val codesInfo = beginCell().storeMaybeRef(jettonWalletCode).storeRef(orderCode).storeRef(matcherFeeCollectorCode).endCell();
+
     val contractData = beginCell()
         .storeAddress(contract.getAddress())
-        .storeRef(jettonWalletCode)
-        .storeAddress(jettonMaster)
+        .storeRef(codesInfo)
+        .storeMaybeRef(fromJetton)
         .storeUint(random.uint256(), 256)
         .storeUint(0, 128)
-        .storeRef(orderCode)
+        .storeMaybeRef(null)
         .storeMaybeRef(null)
     .endCell();
 

@@ -2,10 +2,14 @@ import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, 
 
 export type VaultFactoryConfig = {
     owner: Address;
-    vaultCode1: Cell;
-    vaultCode2: Cell;
+    vaultCode: Cell;
     orderCode: Cell;
+    matcherFeeCollectorCode: Cell;
     comissionInfo: {
+        comission_num: number;
+        comission_denom: number;
+    };
+    comissionInfoMatcher: {
         comission_num: number;
         comission_denom: number;
     };
@@ -14,13 +18,23 @@ export type VaultFactoryConfig = {
 export function vaultFactoryConfigToCell(config: VaultFactoryConfig): Cell {
     return beginCell()
     .storeAddress(config.owner)
-    .storeRef(config.vaultCode1)
-    .storeRef(config.vaultCode2)
-    .storeRef(config.orderCode)
+    .storeRef(
+        beginCell()
+        .storeRef(config.vaultCode)
+        .storeRef(config.orderCode)
+        .storeRef(config.matcherFeeCollectorCode)
+        .endCell()
+    )
     .storeRef(
         beginCell()
         .storeUint(config.comissionInfo.comission_num, 14)
         .storeUint(config.comissionInfo.comission_denom, 14)
+        .endCell()
+    )
+    .storeRef(
+        beginCell()
+        .storeUint(config.comissionInfoMatcher.comission_num, 14)
+        .storeUint(config.comissionInfoMatcher.comission_denom, 14)
         .endCell()
     )
     .endCell();
@@ -49,15 +63,14 @@ export class VaultFactory implements Contract {
         });
     }
 
-    async sendCreateVault(provider: ContractProvider, via: Sender, value: bigint, jettonWalletCode: Cell, jettonMaster: Address, version: number) {
+    async sendCreateVault(provider: ContractProvider, via: Sender, value: bigint, jettonWalletCode: Cell | null, jettonMaster: Address | null) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x64e90480, 32)
-            .storeRef(jettonWalletCode)
-            .storeUint(version, 1)
-            .storeAddress(jettonMaster)
+            .storeMaybeRef(jettonWalletCode ? jettonWalletCode : null)
+            .storeMaybeRef(jettonMaster ? beginCell().storeAddress(jettonMaster).endCell() : null)
             .endCell(),
         });
     }
@@ -88,6 +101,17 @@ export class VaultFactory implements Contract {
                 .storeUint(newCommission.comission_denom, 14)
                 .endCell()
             )
+            .endCell(),
+        });
+    }
+
+    async sendWithDraw(provider: ContractProvider, via: Sender, value: bigint, vaultAddress: Address) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+            .storeUint(0xec9a92f6, 32)
+            .storeAddress(vaultAddress)
             .endCell(),
         });
     }
