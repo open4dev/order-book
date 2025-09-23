@@ -1,8 +1,7 @@
 import "utils/generate_addresses"
 import "utils/fees"
 import "utils/jetton_utils"
-import "@stdlib/gas-payments"
-
+import "utils/op"
 
 struct ComissionInfo {
     comissionNum: uint14
@@ -109,9 +108,9 @@ fun Storage.parse(c: cell): Storage {
 
 
 fun onInternalMessage(in: InMessage) {
-    var storage = Storage.parse(contract.getData());
+    var storage = lazy Storage.fromCell(contract.getData());
 
-    var msg = AllowedMessage.fromSlice(in.body);
+    var msg = lazy AllowedMessage.fromSlice(in.body);
 
     match (msg) {
         WithDraw => {
@@ -214,7 +213,7 @@ fun onInternalMessage(in: InMessage) {
                     .storeUint(0xec9a92f6, 32)
                 .endCell();
 
-                var body = beginCell().endCell();
+                var body = beginCell().storeUint(OP_EXCHANGE, 32).endCell();
 
                 reserveToncoinsOnBalance(transferAmount + in.valueCoins, 1);
 
@@ -232,13 +231,13 @@ fun onInternalMessage(in: InMessage) {
         }
         JettonTransferNotification => {
             reserveToncoinsOnBalance(GAS_STORAGE + storage.comissionInfo!.load().feeAmount, 0);
-            assert(in.valueCoins >= GAS_STORAGE + GAS_VAULT_JETTON_NOTIFICATION) throw 422;
+            assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_NOTIFICATION) throw 422;
             val codesInfo = storage.codesInfo.load();
             var generatedJettonWallet = calculateJettonWallet(codesInfo.jettonWalletCode!, storage.fromJetton!.load().jettonMinter, contract.getAddress());
             val generatedJettonWalletAddress: address = address.fromValidBuilder(generatedJettonWallet.buildAddress());
-            assert(generatedJettonWalletAddress == in.senderAddress) throw 403;
-            assert(storage.fromJetton != null) throw 403;
-            assert(msg.forward_payload != null) throw 403;
+            assert(generatedJettonWalletAddress == in.senderAddress) throw 429;
+            assert(storage.fromJetton != null) throw 428;
+            assert(msg.forward_payload != null) throw 427;
             storage.amount += msg.amount;
             var forwardPayload = msg.forward_payload!.load();
             storage.sendCreateOrder(storage.fromJetton, forwardPayload.toJetton, msg.sender, msg.amount, forwardPayload.priceRate, forwardPayload.slippage, 0, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);

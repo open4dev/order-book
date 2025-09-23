@@ -1,5 +1,4 @@
 import "utils/fees"
-import "vault_factory"
 
 struct Storage {
     vault: address

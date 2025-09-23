@@ -256,7 +256,7 @@ fun onInternalMessage(in: InMessage) {
         }
         InitOrder => {
             assert(in.senderAddress == storage.vault) throw 403;
-            assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT) throw 422;
+            assert(in.valueCoins >= GAS_STORAGE) throw 422;
             var exchangeInfo = storage.exchangeInfo.load();
             assert(exchangeInfo.amount == 0) throw 403;
             exchangeInfo.amount = msg.amount;

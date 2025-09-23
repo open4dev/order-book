@@ -155,7 +155,8 @@ describe('VaultFactory', () => {
             deployer.getSender(),
             toNano(1),
             null,
-            null
+            null,
+            
         )
 
         fromVaultTon = getVaultWrapper(blockchain, resultCreateFromVaultTon)
@@ -273,7 +274,7 @@ describe('VaultFactory', () => {
         
         const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
             user1.getSender(),
-            toNano(0.5),
+            toNano(0.04),
             {
                 jettonAmount: toNano(100),
                 vault: fromVault.address,
@@ -281,7 +282,7 @@ describe('VaultFactory', () => {
                 priceRate: toNano(1.01),
                 slippage: toNano(0.02),
                 toJettonMinter: toJettonMinterAddress,
-                forwardTonAmount: toNano(0.1)
+                forwardTonAmount: toNano(0.002 + 0.01 + 0.007)
             }
         )
         console.log("JETTON fromOrder TRS")
@@ -378,12 +379,12 @@ describe('VaultFactory', () => {
         console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
         const resultCreateOrder = await fromVaultTon.sendCreateOrder(
             user1.getSender(),
-            toNano(10),
+            toNano(9.9 + 0.002 + 0.01 + 0.007),
             {
                 amount: toNano(9.9),
                 priceRate: toNano(2),
                 slippage: toNano(0.02),
-                toJettonMinter: toJettonMinter.address
+                toJettonMinter: toJettonMinter.address,
             }
         )
         printTransactionFees(resultCreateOrder.transactions)
@@ -447,7 +448,7 @@ describe('VaultFactory', () => {
                 priceRate: toNano(2),
                 slippage: toNano(0.02),
                 toJettonMinter: null,
-                forwardTonAmount: toNano(0.1)
+                forwardTonAmount: toNano(0.002 + 0.01 + 0.0057)
             }
         )
         printTransactionFees(resultCreateOrder.transactions)
@@ -583,7 +584,7 @@ describe('VaultFactory', () => {
         console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
         const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
             user1.getSender(),
-            toNano(0.5),
+            toNano(0.02 + 0.002 + 0.01 + 0.007),
             {
                 jettonAmount: toNano(9),
                 vault: fromVault.address,
@@ -591,7 +592,7 @@ describe('VaultFactory', () => {
                 priceRate: toNano(2),
                 slippage: toNano(0.02),
                 toJettonMinter: null,
-                forwardTonAmount: toNano(0.1)
+                forwardTonAmount: toNano(0.002 + 0.01 + 0.007)
             }
         )
         printTransactionFees(resultCreateOrder.transactions)
