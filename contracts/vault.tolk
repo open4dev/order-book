@@ -174,7 +174,6 @@ fun onInternalMessage(in: InMessage) {
 
             var transferAmount = msg.amount;
             var matcherFeeAmount = 0;
-            
 
             if (msg.closedFlag == false) {
                 var feeAmount = mulDivFloor(msg.amount, comissionInfo.comissionNum, comissionInfo.comissionDenom);
@@ -203,7 +202,7 @@ fun onInternalMessage(in: InMessage) {
                     0,
                     jettonWallet,
                     transferAmount,
-                    msg.orderOwner,
+                    msg.destination,
                     msg.matcher,
                     0,
                     sendModeTransfer

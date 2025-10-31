@@ -80,6 +80,8 @@ describe('VaultFactory', () => {
 
     let user1: SandboxContract<TreasuryContract>;
     let user2: SandboxContract<TreasuryContract>;
+    let matcher: SandboxContract<TreasuryContract>;
+
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
@@ -87,6 +89,7 @@ describe('VaultFactory', () => {
         deployer = await blockchain.treasury('deployer');
         user1 = await blockchain.treasury('user1');
         user2 = await blockchain.treasury('user2');
+        matcher = await blockchain.treasury('matcher');
 
         vaultFactory = blockchain.openContract(VaultFactory.createFromConfig({
             owner: deployer.address,
@@ -282,7 +285,7 @@ describe('VaultFactory', () => {
                 priceRate: toNano(1.01),
                 slippage: toNano(0.02),
                 toJettonMinter: toJettonMinterAddress,
-                forwardTonAmount: toNano(0.002 + 0.01 + 0.007)
+                forwardTonAmount: toNano(0.002 + 0.01 + 0.007 + 0.005)
             }
         )
         console.log("JETTON fromOrder TRS")
@@ -323,7 +326,8 @@ describe('VaultFactory', () => {
                 anotherVault: toVault.address,
                 anotherOrderOwner: user2.address,
                 anotherOrder: toOrder.address,
-                createdAt: (await fromOrder.getData()).createdAt
+                createdAt: (await fromOrder.getData()).createdAt,
+                amount: toNano(10)
             }
         )
 
@@ -418,7 +422,8 @@ describe('VaultFactory', () => {
                 anotherVault: toVault.address,
                 anotherOrderOwner: user2.address,
                 anotherOrder: toOrder.address,
-                createdAt: (await toOrder.getData()).createdAt
+                createdAt: (await toOrder.getData()).createdAt,
+                amount: toNano(18)
             }
         )
 
@@ -479,7 +484,8 @@ describe('VaultFactory', () => {
                 anotherVault: fromVaultTon.address,
                 anotherOrderOwner: user2.address,
                 anotherOrder: toOrder.address,
-                createdAt: (await toOrder.getData()).createdAt
+                createdAt: (await toOrder.getData()).createdAt,
+                amount: toNano(18.9)
             }
         )
 
@@ -552,7 +558,8 @@ describe('VaultFactory', () => {
                 anotherVault: toVault.address,
                 anotherOrderOwner: user2.address,
                 anotherOrder: toOrder.address,
-                createdAt: (await toOrder.getData()).createdAt
+                createdAt: (await toOrder.getData()).createdAt,
+                amount: toNano(10)
             }
         )
 
@@ -584,7 +591,7 @@ describe('VaultFactory', () => {
         console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
         const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
             user1.getSender(),
-            toNano(0.02 + 0.002 + 0.01 + 0.007),
+            toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
             {
                 jettonAmount: toNano(9),
                 vault: fromVault.address,
@@ -592,7 +599,7 @@ describe('VaultFactory', () => {
                 priceRate: toNano(2),
                 slippage: toNano(0.02),
                 toJettonMinter: null,
-                forwardTonAmount: toNano(0.002 + 0.01 + 0.007)
+                forwardTonAmount: toNano(0.002 + 0.01 + 0.007 + 0.005)
             }
         )
         printTransactionFees(resultCreateOrder.transactions)
@@ -603,9 +610,9 @@ describe('VaultFactory', () => {
 
         const resultCreateToOrder = await fromVaultTon.sendCreateOrder(
             user2.getSender(),
-            toNano(19),
+            toNano(10),
             {
-                amount: toNano(18.9),
+                amount: toNano(9.9),
                 priceRate: toNano(0.5),
                 slippage: toNano(0.02),
                 toJettonMinter: fromJettonMinter.address,
@@ -616,6 +623,11 @@ describe('VaultFactory', () => {
 
         console.log(await toOrder.getData())
 
+        console.log("amount before match from vault", await fromVault.getData())
+        console.log("amount before match to vault", await fromVaultTon.getData())
+        console.log("amount before match from order", await fromOrder.getData())
+        console.log("amount before match to order", await toOrder.getData())
+
         const resultMatchOrder = await fromOrder.sendMatchOrder(
             user1.getSender(),
             toNano(1),
@@ -623,7 +635,8 @@ describe('VaultFactory', () => {
                 anotherVault: fromVaultTon.address,
                 anotherOrderOwner: user2.address,
                 anotherOrder: toOrder.address,
-                createdAt: (await toOrder.getData()).createdAt
+                createdAt: (await toOrder.getData()).createdAt,
+                amount: toNano(7)
             }
         )
 
@@ -632,8 +645,10 @@ describe('VaultFactory', () => {
         // console.log("amount FromOrder after match", await fromOrder.getData())
         // console.log("amount ToOrder after match", await toOrder.getData())
 
-        console.log("amount from vault", await fromVaultTon.getData())
-        console.log("amount to vault", await toVault.getData())
+        console.log("amount after match from vault", await fromVault.getData())
+        console.log("amount after match to vault", await fromVaultTon.getData())
+        console.log("amount after match from order", await fromOrder.getData())
+        console.log("amount after match to order", await toOrder.getData())
 
         console.log("FromVault address", fromVaultTon.address)
         console.log("ToVault address", toVault.address)
@@ -654,5 +669,63 @@ describe('VaultFactory', () => {
         const resultWithDrawMatcherFromVault = await matcherFeeCollectorFromVault.sendWithDraw(user1.getSender(), toNano(0.07 + 0.07))
         printTransactionFees(resultWithDrawMatcherFromVault.transactions)
     });
+
+    it('should revert match order', async () => {
+        const resultCreateFromOrder = await fromJettonWallet.sendCreateOrder(
+            user1.getSender(),
+            toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+            {
+                jettonAmount: toNano(4),
+                vault: fromVault.address,
+                owner: user1.address,
+                priceRate: toNano(100),
+                slippage: toNano(0.01),
+                toJettonMinter: toJettonMinter.address,
+                forwardTonAmount: toNano(0.002 + 0.01 + 0.007 + 0.005)
+            }
+        )
+        const resultCreateToOrder = await toJettonWallet.sendCreateOrder(
+            user2.getSender(),
+            toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+            {
+                jettonAmount: toNano(30),
+                vault: toVault.address,
+                owner: user2.address,
+                priceRate: toNano(0.1),
+                slippage: toNano(0.01),
+                toJettonMinter: fromJettonMinter.address,
+                forwardTonAmount: toNano(0.002 + 0.01 + 0.007 + 0.005)
+            }
+        )
+
+        const fromOrder = getOrderWrapper(blockchain, resultCreateFromOrder, fromVault.address)
+        const toOrder = getOrderWrapper(blockchain, resultCreateToOrder, toVault.address)
+
+        console.log("Before match order")
+        const fromOrderDataBefore = await fromOrder.getData()
+        const toOrderDataBefore = await toOrder.getData()
+        console.log("FromOrder", fromOrderDataBefore)
+        console.log("ToOrder", toOrderDataBefore)
+
+        const resultMatchOrder = await fromOrder.sendMatchOrder(
+            matcher.getSender(),
+            toNano(1),
+            {
+                anotherVault: toVault.address,
+                anotherOrderOwner: user2.address,
+                anotherOrder: toOrder.address,
+                createdAt: toOrderDataBefore.createdAt,
+                amount: toNano(1)
+            }
+        )
+        printTransactionFees(resultMatchOrder.transactions)
+
+        console.log("After match order")
+        const fromOrderDataAfter = await fromOrder.getData()
+        const toOrderDataAfter = await toOrder.getData()
+        console.log("FromOrder", fromOrderDataAfter)
+        console.log("ToOrder", toOrderDataAfter)
+
+    })
 
 });

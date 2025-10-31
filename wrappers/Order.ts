@@ -45,6 +45,7 @@ export class Order implements Contract {
         anotherOrderOwner: Address,
         anotherOrder: Address,
         createdAt: number,
+        amount: bigint,
     }) {
 
         // anotherVault: address
@@ -65,8 +66,8 @@ export class Order implements Contract {
             .storeAddress(params.anotherVault)
             .storeAddress(params.anotherOrderOwner)
             .storeAddress(params.anotherOrder)
-            // .storeRef(matchExchangeInfo)
             .storeUint(params.createdAt, 32)
+            .storeCoins(params.amount)
             .endCell(),
         });
     }

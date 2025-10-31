@@ -44,7 +44,7 @@ fun onInternalMessage(in: InMessage) {
                 .endCell()
             });
 
-            msg.send(SEND_MODE_CARRY_ALL_BALANCE | SEND_MODE_DESTROY);
+            msg.send(SEND_MODE_CARRY_ALL_BALANCE);
 
             return;
         }

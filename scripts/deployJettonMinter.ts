@@ -18,19 +18,19 @@ export async function run(provider: NetworkProvider) {
 
     await provider.waitForDeploy(jettonMinterFrom.address);
 
-    const jettonMinterTo = provider.open(
-        JettonMinter.createFromConfig({
-            admin: provider.sender().address!,
-            wallet_code: jettonWalletCodeCell,
-            jetton_content: {
-                uri: 'to'
-            }
-        }, jettonMinterCodeCell)
-    )
+    // const jettonMinterTo = provider.open(
+    //     JettonMinter.createFromConfig({
+    //         admin: provider.sender().address!,
+    //         wallet_code: jettonWalletCodeCell,
+    //         jetton_content: {
+    //             uri: 'to'
+    //         }
+    //     }, jettonMinterCodeCell)
+    // )
 
-    await jettonMinterTo.sendDeploy(provider.sender(), toNano('0.05'));
+    // await jettonMinterTo.sendDeploy(provider.sender(), toNano('0.05'));
 
-    await provider.waitForDeploy(jettonMinterTo.address);
+    // await provider.waitForDeploy(jettonMinterTo.address);
 
     // run methods on `vaultFactory`
 }
