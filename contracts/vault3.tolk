@@ -343,17 +343,36 @@ fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
 
 fun calculateJettonWallet(jettonWalletCode: cell, jettonMaster: address, owner: address): AutoDeployAddress {
     var jettonWalletData: cell = beginCell()
+        .storeUint(0, 4)
         .storeCoins(0)
         .storeAddress(owner)
         .storeAddress(jettonMaster)
-        .storeRef(jettonWalletCode)
+    .endCell();
+
+    //    return begin_cell()
+    // .store_uint(0, 2) ;; 0b00 - No split_depth; No special
+    // .store_maybe_ref(jetton_wallet_code)
+    // .store_maybe_ref(
+    //     pack_jetton_wallet_data(
+    //         0, ;; status
+    //         0, ;; balance
+    //         owner_address,
+    //         jetton_master_address)
+    // )
+    // .store_uint(0, 1) ;; Empty libraries
+    // .end_cell();
+
+    // https://tonviewer.com/EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT?section=code
+
+    var stateInitCell = beginCell()
+        .storeUint(0, 2)
+        .storeMaybeRef(jettonWalletCode)
+        .storeMaybeRef(jettonWalletData)
+        .storeUint(0, 1)
     .endCell();
 
     var jettonWallet = AutoDeployAddress {
-        stateInit: {
-            code: jettonWalletCode,
-            data: jettonWalletData
-        }
+        stateInit: stateInitCell
     };
 
     return jettonWallet;

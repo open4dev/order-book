@@ -423,7 +423,7 @@ describe('VaultFactory', () => {
                 anotherOrderOwner: user2.address,
                 anotherOrder: toOrder.address,
                 createdAt: (await toOrder.getData()).createdAt,
-                amount: toNano(18)
+                amount: toNano(9.9)
             }
         )
 
@@ -728,4 +728,7 @@ describe('VaultFactory', () => {
 
     })
 
+    it("Test jetton code", async () => {
+        
+    })
 });

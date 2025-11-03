@@ -46,6 +46,8 @@ fun onInternalMessage(in: InMessage) {
 
             msg.send(SEND_MODE_CARRY_ALL_BALANCE);
 
+            storage.amount = 0;
+            storage.save();
             return;
         }
         AddFee => {
@@ -55,4 +57,9 @@ fun onInternalMessage(in: InMessage) {
             return;
         }
     }
+}
+
+get fun getData() {
+    var storage = Storage.load();
+    return (storage.vault, storage.owner, storage.amount);
 }

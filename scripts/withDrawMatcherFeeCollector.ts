@@ -3,7 +3,7 @@ import { MatcherFeeCollector } from '../wrappers/MatcherFeeCollector';
 import { compile, NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
-    const matcherFeeCollector = provider.open(MatcherFeeCollector.createFromAddress(Address.parse("0QBk9cKfG7jEm9lxUxvC-0tZPqeDbCAuZ6sx1lI6lqAfK0aL")));
+    const matcherFeeCollector = provider.open(MatcherFeeCollector.createFromAddress(Address.parse("EQCRrFhBT6QaOsMVq5dnXyH5uDCAYRi6Mdk9W1Kss7jGeULO")));
 
     await matcherFeeCollector.sendWithDraw(provider.sender(), toNano('0.1'));
 

@@ -5,7 +5,7 @@ import { compile, NetworkProvider } from '@ton/blueprint';
 export async function run(provider: NetworkProvider) {
     const vaultFactory = provider.open(VaultFactory.createFromConfig({
         owner: provider.sender().address!,
-        vaultCode: await compile('Vault2'),
+        vaultCode: await compile('Vault3'),
         orderCode: await compile('Order'),
         matcherFeeCollectorCode: await compile('MatcherFeeCollector'),
         comissionInfo: {
