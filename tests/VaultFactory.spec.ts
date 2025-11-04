@@ -509,7 +509,7 @@ describe('VaultFactory', () => {
         
         const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
             user1.getSender(),
-            toNano(0.5),
+            toNano(0.064),
             {
                 jettonAmount: toNano(100),
                 vault: fromVault.address,
@@ -517,7 +517,7 @@ describe('VaultFactory', () => {
                 priceRate: toNano(1.01),
                 slippage: toNano(0.02),
                 toJettonMinter: toJettonMinterAddress,
-                forwardTonAmount: toNano(0.1)
+                forwardTonAmount: toNano(0.024)
             }
         )
         console.log("JETTON fromOrder TRS")
@@ -673,7 +673,7 @@ describe('VaultFactory', () => {
     it('should revert match order', async () => {
         const resultCreateFromOrder = await fromJettonWallet.sendCreateOrder(
             user1.getSender(),
-            toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+            toNano(0.64),
             {
                 jettonAmount: toNano(4),
                 vault: fromVault.address,

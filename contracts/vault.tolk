@@ -230,7 +230,6 @@ fun onInternalMessage(in: InMessage) {
             return;
         }
         JettonTransferNotification => {
-            reserveToncoinsOnBalance(GAS_STORAGE + storage.comissionInfo!.load().feeAmount, 0);
             assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_NOTIFICATION) throw 422;
             val codesInfo = storage.codesInfo.load();
             var generatedJettonWallet = calculateJettonWallet(codesInfo.jettonWalletCode!, storage.fromJetton!.load().jettonMinter, contract.getAddress());
