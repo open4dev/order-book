@@ -286,6 +286,7 @@ fun onInternalMessage(in: InMessage) {
 }
 
 
+
 fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, owner: address, amount: coins, priceRate: coins, slippage: uint30, value: coins, sendMode: int) {
     var order: AutoDeployAddress = generateOrder(
         contract.getAddress(),
@@ -347,11 +348,30 @@ fun calculateJettonWallet(jettonWalletCode: cell, jettonMaster: address, owner: 
         .storeAddress(jettonMaster)
     .endCell();
 
+    //    return begin_cell()
+    // .store_uint(0, 2) ;; 0b00 - No split_depth; No special
+    // .store_maybe_ref(jetton_wallet_code)
+    // .store_maybe_ref(
+    //     pack_jetton_wallet_data(
+    //         0, ;; status
+    //         0, ;; balance
+    //         owner_address,
+    //         jetton_master_address)
+    // )
+    // .store_uint(0, 1) ;; Empty libraries
+    // .end_cell();
+
+    // https://tonviewer.com/EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT?section=code
+
+    var stateInitCell = beginCell()
+        .storeUint(0, 2)
+        .storeMaybeRef(jettonWalletCode)
+        .storeMaybeRef(jettonWalletData)
+        .storeUint(0, 1)
+    .endCell();
+
     var jettonWallet = AutoDeployAddress {
-        stateInit: {
-            code: jettonWalletCode,
-            data: jettonWalletData
-        }
+        stateInit: stateInitCell
     };
 
     return jettonWallet;

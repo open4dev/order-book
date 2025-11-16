@@ -286,6 +286,7 @@ fun onInternalMessage(in: InMessage) {
 }
 
 
+
 fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, owner: address, amount: coins, priceRate: coins, slippage: uint30, value: coins, sendMode: int) {
     var order: AutoDeployAddress = generateOrder(
         contract.getAddress(),
@@ -341,10 +342,10 @@ fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
 
 fun calculateJettonWallet(jettonWalletCode: cell, jettonMaster: address, owner: address): AutoDeployAddress {
     var jettonWalletData: cell = beginCell()
-        .storeUint(0, 4)
         .storeCoins(0)
         .storeAddress(owner)
         .storeAddress(jettonMaster)
+        .storeRef(jettonWalletCode)
     .endCell();
 
     var jettonWallet = AutoDeployAddress {
