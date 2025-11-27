@@ -121,15 +121,6 @@ fun Storage.sendRevertMatchOrder(mutate self, value: coins, amount: coins, dest:
 }
 
 
-
-
-
-
-
-fun Storage.parse() {
-    return Storage.fromCell(contract.getData());
-}
-
 fun Storage.save(self) {
     contract.setData(self.toCell())
 }
@@ -194,7 +185,7 @@ struct ( 0xf175e4cd ) RevertMatchOrder {
 type AllowedMessage = MatchOrder | InternalMatchOrder | CloseOrder | InitOrder | SuccessMatch | RevertMatchOrder
 
 fun onInternalMessage(in: InMessage) {
-    var storage = Storage.parse();
+    var storage = lazy Storage.fromCell(contract.getData());
 
     var msg = AllowedMessage.fromSlice(in.body);
 
@@ -397,13 +388,9 @@ fun Storage.verifySender(mutate self, senderAddress: address, exchangeInfo: Exch
 }
 
 
-fun onBouncedMessage(in: InMessageBounced) {
-    var storage: Storage = lazy Storage.parse();
-}
-
-
 get fun getData(): (address, address, cell, uint32) {
-    var storage = Storage.parse();
+    var storage = lazy Storage.fromCell(contract.getData());
+
 
 
     return (storage.owner, storage.vault, storage.exchangeInfo, storage.createdAt);

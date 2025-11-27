@@ -13,7 +13,7 @@ import { Vault } from '../wrappers/Vault';
 // vault to kQDh1QL2kQ5UEHhgOeOuEvwGC8_GaxpRFsI2f0dGWsLUQSO8
 
 export async function run(provider: NetworkProvider) {
-    const jettonWalletFrom = provider.open(JettonWallet.createFromAddress(Address.parse("EQD-Wa7yrUuozviItJPl_2zUK-Gfn81f8udP5AsZ__jdU3eg")));
+    const jettonWalletFrom = provider.open(JettonWallet.createFromAddress(Address.parse("EQAuEPbIhjYLNBoZbg6bnavSAnVea2vrtUOlz3q27nxxGdfB")));
 
     // const jettonWalletTo = provider.open(JettonWallet.createFromAddress(Address.parse("kQAj82m-kX_I8c0BKHOXW_FxM_qY55mALmSQ3eLRhyRX00Ws")));
 
@@ -21,15 +21,15 @@ export async function run(provider: NetworkProvider) {
 
     await jettonWalletFrom.sendCreateOrder(
         provider.sender(),
-        toNano(0.14),
+        toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
         {
-            jettonAmount: toNano(0.001),
-            vault: Address.parse("EQDRbM3iuAXWuEsMeTbzBrytQ9PlGb_5_3BWPLntMQ125rTh"),
+            jettonAmount: toNano(12),
+            vault: Address.parse("0:4e6205887195257dc8c2822051f8ef26f5f2113bb111e37e6452ebb01c98472f"),
             owner: provider.sender().address!,
-            priceRate: toNano(0.3003003003),
+            priceRate: toNano(0.0833),
             slippage: toNano(0.02),
-            toJettonMinter: null,
-            forwardTonAmount: toNano(0.002 + 0.01 + 0.007)
+            toJettonMinter: Address.parse("0:589d4ac897006b5aaa7fae5f95c5e481bd34765664df0b831a9d0eb9ee7fc150"),
+            forwardTonAmount: toNano(0.002 + 0.01 + 0.007 + 0.005)
         }
     )
 

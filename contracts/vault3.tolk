@@ -99,13 +99,6 @@ fun Storage.serialize(self): cell {
     return self.toCell();
 }
 
-@inline
-fun Storage.parse(c: cell): Storage {
-    return Storage.fromCell(c);
-}
-
-
-
 
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());
@@ -379,14 +372,14 @@ fun calculateJettonWallet(jettonWalletCode: cell, jettonMaster: address, owner: 
 
 
 get fun getData() {
-    var storage = Storage.parse(contract.getData());
+    var storage = lazy Storage.fromCell(contract.getData());
 
     return (storage.amount, storage.fromJetton, storage.randomHash, storage.vault_factory)
 }
 
 
 get fun getCodes() {
-    var storage = Storage.parse(contract.getData());
+    var storage = lazy Storage.fromCell(contract.getData());
     val codesInfo = storage.codesInfo.load();
 
     return (codesInfo.jettonWalletCode, codesInfo.orderCode, codesInfo.matcherFeeCollectorCode)

@@ -34,11 +34,6 @@ fun Storage.serialize(self): cell {
     return self.toCell();
 }
 
-@inline
-fun Storage.parse(c: cell): Storage {
-    return Storage.fromCell(c);
-}
-
 
 
 fun Storage.changeOwner(mutate self, newOwner: address): void {
@@ -86,11 +81,11 @@ fun Storage.save(self) {
 }
 
 fun onInternalMessage(in: InMessage) {
-    var storage = Storage.parse(contract.getData());
+    var storage = lazy Storage.fromCell(contract.getData());
 
 
     
-    var msg = AllowedMessage.fromSlice(in.body);
+    var msg = lazy AllowedMessage.fromSlice(in.body);
 
     match (msg) {
         CreateVault => {
@@ -206,12 +201,12 @@ fun prepareInitVault(
 
 
 get fun getOwner(): address {
-    var storage = Storage.parse(contract.getData());
+    var storage = lazy Storage.fromCell(contract.getData());
     return storage.owner;
 }
 
 get fun getCommission(): (uint14, uint14) {
-    var storage = Storage.parse(contract.getData());
+    var storage = lazy Storage.fromCell(contract.getData());
     var comissionInfo = storage.comissionInfo.load();
     return (comissionInfo.comission_num, comissionInfo.comission_denom);
 }
