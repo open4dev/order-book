@@ -89,7 +89,7 @@ export class VaultFactory implements Contract {
     async sendChangeCommission(provider: ContractProvider, via: Sender, value: bigint, newCommission: {
         comission_num: number;
         comission_denom: number;
-    }) {
+    }, matcher: boolean) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
@@ -101,6 +101,7 @@ export class VaultFactory implements Contract {
                 .storeUint(newCommission.comission_denom, 14)
                 .endCell()
             )
+            .storeUint(matcher ? 1 : 0, 1)
             .endCell(),
         });
     }
@@ -126,6 +127,8 @@ export class VaultFactory implements Contract {
         return {
             comission_num: stack.readNumber(),
             comission_denom: stack.readNumber(),
+            comission_num_matcher: stack.readNumber(),
+            comission_denom_matcher: stack.readNumber(),
         };
     }
 }

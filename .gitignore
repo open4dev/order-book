@@ -22,3 +22,5 @@ Session.vim
 .nvim/
 .emacs/
 .helix/
+
+TEST_CASES.md

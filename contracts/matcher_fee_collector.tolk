@@ -24,14 +24,14 @@ type AllowedMessage = WithDraw | AddFee
 
 
 fun onInternalMessage(in: InMessage) {
-    var storage = Storage.load();
+    var storage = lazy Storage.fromCell(contract.getData());
 
-    var msg = AllowedMessage.fromSlice(in.body);
+    var msg = lazy AllowedMessage.fromSlice(in.body);
 
     match (msg) {
         WithDraw => {
-            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
             assert(in.valueCoins >= GAS_JETTON_WALLET_TRANSFER) throw 422;
+            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
 
             var msg = createMessage({
                 bounce: false,
@@ -51,6 +51,7 @@ fun onInternalMessage(in: InMessage) {
             return;
         }
         AddFee => {
+            assert(in.valueCoins >= GAS_MATCHER_FEE_COLLECTOR_ADD_FEE) throw 422;
             assert(in.senderAddress == storage.vault) throw 403; // Check if the sender is the owner
             storage.amount += msg.amount;
             storage.save();

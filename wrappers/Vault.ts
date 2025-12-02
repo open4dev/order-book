@@ -70,4 +70,15 @@ export class Vault implements Contract {
             orderCode: stack.readCell()
         };
     }
+
+    async getComissionInfo(provider: ContractProvider) {
+        const { stack } = await provider.get('getComissionInfo', []);
+        return {
+            comissionNum: stack.readNumber(),
+            comissionDenom: stack.readNumber(),
+            feeAmount: stack.readBigNumber(),
+            comissionNumMatcher: stack.readNumber(),
+            comissionDenomMatcher: stack.readNumber(),
+        };
+    }
 }

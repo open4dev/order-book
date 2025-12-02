@@ -57,20 +57,18 @@ struct ( 0xb6cf7f0f ) ChangeOwner { // "ChangeOwner"c
 
 struct ( 0x4e86ed8b ) ChangeCommission { // "ChangeCommission"c
     newCommissionInfo: Cell<ComissionInfo>
-}
-
-struct ( 0xdb3ac0d8 ) ChangeCommissionMatcher { // "ChangeCommissionMatcher"c
-    newCommissionInfo: Cell<ComissionInfo>
+    matcher: bool
 }
 
 struct ( 0x81e36595 ) InitVaultFactory { // "InitVaultFactory"c
+
 }
 
 struct ( 0xec9a92f6 ) WithDraw {
     vaultAddress: address
 }
 
-type AllowedMessage = CreateVault | ChangeOwner | ChangeCommission | ChangeCommissionMatcher | InitVaultFactory | WithDraw
+type AllowedMessage = CreateVault | ChangeOwner | ChangeCommission | WithDraw | InitVaultFactory
 
 fun Storage.load() {
     return Storage.fromCell(contract.getData());
@@ -92,9 +90,9 @@ fun onInternalMessage(in: InMessage) {
             assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw 422;
 
             var comissionInfo = storage.comissionInfo.load();
-            assert(mulDivRound(comissionInfo.comission_num, 100, comissionInfo.comission_denom) <= MAX_COMMISSION) throw 422;
+            assert(mulDivRound(comissionInfo.comission_num, 100, comissionInfo.comission_denom) <= MAX_COMMISSION) throw 423;
             var comissionInfoMatcher = storage.comissionInfoMatcher.load();
-            assert(mulDivRound(comissionInfoMatcher.comission_num, 100, comissionInfoMatcher.comission_denom) <= MAX_COMMISSION_MATCHER) throw 422;
+            assert(mulDivRound(comissionInfoMatcher.comission_num, 100, comissionInfoMatcher.comission_denom) <= MAX_COMMISSION_MATCHER) throw 424;
 
             var codesInfo = storage.codesInfo.load();
             var autoDeployAddress = prepareInitVault(codesInfo.orderCode, codesInfo.vaultCode, codesInfo.matcherFeeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
@@ -131,16 +129,14 @@ fun onInternalMessage(in: InMessage) {
             assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
             assert(in.valueCoins >= GAS_VAULT_FACTORY_CHANGE_COMMISSION) throw 422;
             val newCommission = msg.newCommissionInfo.load();
-            assert(mulDivRound(newCommission.comission_num, 100, newCommission.comission_denom) <= MAX_COMMISSION) throw 422;
-            storage.comissionInfo = newCommission.toCell();
-            storage.save();
-        }
-        ChangeCommissionMatcher => {
-            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
-            assert(in.valueCoins >= GAS_VAULT_FACTORY_CHANGE_COMMISSION) throw 422;
-            val newCommission = msg.newCommissionInfo.load();
-            assert(mulDivRound(newCommission.comission_num, 100, newCommission.comission_denom) <= MAX_COMMISSION_MATCHER) throw 422;
-            storage.comissionInfoMatcher = newCommission.toCell();
+            if (msg.matcher) {
+                assert(mulDivRound(newCommission.comission_num, 100, newCommission.comission_denom) <= MAX_COMMISSION_MATCHER) throw 400;
+                storage.comissionInfoMatcher = newCommission.toCell();
+            }
+            else {
+                assert(mulDivRound(newCommission.comission_num, 100, newCommission.comission_denom) <= MAX_COMMISSION) throw 400;
+                storage.comissionInfo = newCommission.toCell();
+            }
             storage.save();
         }
         InitVaultFactory => {
@@ -160,13 +156,13 @@ fun sendWithDraw(vaultAddress: address, owner: address): void {
     var msgWithDraw = createMessage({
         bounce: false,
         dest: vaultAddress,
-        value: GAS_VAULT_WITHDRAW + GAS_JETTON_WALLET_TRANSFER,
+        value: 0,
         body: beginCell()
             .storeUint(0xec9a92f6, 32)
             .storeAddress(owner)
             .endCell()
     });
-    msgWithDraw.send(SEND_MODE_PAY_FEES_SEPARATELY);
+    msgWithDraw.send(SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
 }
 
 
@@ -205,8 +201,9 @@ get fun getOwner(): address {
     return storage.owner;
 }
 
-get fun getCommission(): (uint14, uint14) {
+get fun getCommission(): (uint14, uint14, uint14, uint14) {
     var storage = lazy Storage.fromCell(contract.getData());
     var comissionInfo = storage.comissionInfo.load();
-    return (comissionInfo.comission_num, comissionInfo.comission_denom);
+    var comissionInfoMatcher = storage.comissionInfoMatcher.load();
+    return (comissionInfo.comission_num, comissionInfo.comission_denom, comissionInfoMatcher.comission_num, comissionInfoMatcher.comission_denom);
 }

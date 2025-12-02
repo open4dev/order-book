@@ -161,7 +161,7 @@ fun onInternalMessage(in: InMessage) {
                 codesInfo.orderCode,
                 msg.createdAt
             );
-            var generatedOrderAddress = address.fromValidBuilder(generatedOrder.buildAddress());
+            var generatedOrderAddress = generatedOrder.calculateAddress();
             assert(generatedOrderAddress == in.senderAddress) throw 403;
             var comissionInfo = storage.comissionInfo!.load();
             var matcherFeeInfo = storage.comissionInfoMatcher!.load();
@@ -226,7 +226,7 @@ fun onInternalMessage(in: InMessage) {
             assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_NOTIFICATION) throw 422;
             val codesInfo = storage.codesInfo.load();
             var generatedJettonWallet = calculateJettonWallet(codesInfo.jettonWalletCode!, storage.fromJetton!.load().jettonMinter, contract.getAddress());
-            val generatedJettonWalletAddress: address = address.fromValidBuilder(generatedJettonWallet.buildAddress());
+            val generatedJettonWalletAddress: address = generatedJettonWallet.calculateAddress();
             assert(generatedJettonWalletAddress == in.senderAddress) throw 429;
             assert(storage.fromJetton != null) throw 428;
             assert(msg.forward_payload != null) throw 427;
@@ -257,7 +257,7 @@ fun onInternalMessage(in: InMessage) {
             assert(in.valueCoins >= GAS_VAULT_WITHDRAW) throw 422;
             var codesInfo = storage.codesInfo.load();
             var matcherFeeCollector = generateMatcherFeeCollector(contract.getAddress(), msg.matcher, codesInfo.matcherFeeCollectorCode);
-            var matcherFeeCollectorAddress = address.fromValidBuilder(matcherFeeCollector.buildAddress());
+            var matcherFeeCollectorAddress = matcherFeeCollector.calculateAddress();
             assert(matcherFeeCollectorAddress == in.senderAddress) throw 403;
             if (storage.fromJetton == null) {
                 val body = beginCell()
@@ -363,4 +363,11 @@ get fun getCodes() {
     val codesInfo = storage.codesInfo.load();
 
     return (codesInfo.jettonWalletCode, codesInfo.orderCode, codesInfo.matcherFeeCollectorCode)
+}
+
+get fun getComissionInfo() {
+    var storage = lazy Storage.fromCell(contract.getData());
+    val comissionInfo = storage.comissionInfo!.load();
+    val comissionInfoMatcher = storage.comissionInfoMatcher!.load();
+    return (comissionInfo.comissionNum, comissionInfo.comissionDenom, comissionInfo.feeAmount, comissionInfoMatcher.comissionNum, comissionInfoMatcher.comissionDenom);
 }

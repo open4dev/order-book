@@ -52,7 +52,7 @@ fun compareWithSlippage(actual: coins, reference: coins, slippage: uint30): int 
 
 fun Storage.sendInternalMatchOrder(mutate self, anotherOrder: address, msgBody: cell, value: coins, sendMode: int) {
     var msg = createMessage({
-        bounce: false,
+        bounce: BounceMode.RichBounce,
         dest: anotherOrder,
         value: value,
         body: msgBody
@@ -132,7 +132,6 @@ struct MatchExchangeInfo {
     slippage: uint30
 }
 
-
 struct ( 0x47ff7e25 ) MatchOrder {
     anotherVault: address
     anotherOrderOwner: address
@@ -172,24 +171,12 @@ struct ( 0x55feb42a ) SuccessMatch {
     matchExchangeInfo: Cell<SuccessInfo>
 }
 
-
-struct ( 0xf175e4cd ) RevertMatchOrder {
-    anotherVault: address
-    anotherOrderOwner: address
-    matcher: address
-    createdAt: uint32
-    amount: coins
-}
-
-
-type AllowedMessage = MatchOrder | InternalMatchOrder | CloseOrder | InitOrder | SuccessMatch | RevertMatchOrder
+type AllowedMessage = MatchOrder | InternalMatchOrder | CloseOrder | InitOrder | SuccessMatch
 
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());
 
-    var msg = AllowedMessage.fromSlice(in.body);
-
-    
+    var msg = lazy AllowedMessage.fromSlice(in.body);
 
     match (msg) {
         MatchOrder => {
@@ -206,7 +193,7 @@ fun onInternalMessage(in: InMessage) {
                 msg.createdAt
             );
 
-            var generatedOrderAddress = address.fromValidBuilder(generatedOrder.buildAddress());
+            var generatedOrderAddress = generatedOrder.calculateAddress();
 
             assert(generatedOrderAddress == msg.anotherOrder) throw 403;
 
@@ -240,16 +227,10 @@ fun onInternalMessage(in: InMessage) {
             var matchExchangeInfo = msg.matchExchangeInfo.load();
             val compareSlippage = compareWithSlippage(matchExchangeInfo.priceRate, exchangeInfo.priceRate, exchangeInfo.slippage);
             val anotherCompareSlippage: int = compareWithSlippage(matchExchangeInfo.priceRate, exchangeInfo.priceRate, matchExchangeInfo.slippage);
-            if ((exchangeInfo.amount == 0) || (compareSlippage != 0) || (anotherCompareSlippage != 0)) {
-                storage.sendRevertMatchOrder(
-                    0,
-                    matchExchangeInfo.amount,
-                    in.senderAddress,
-                    msg.matcher,
-                    SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE,
-                );
-                return;
-            }
+            debug.print(exchangeInfo.amount);
+            debug.print(compareSlippage);
+            debug.print(anotherCompareSlippage);
+            assert ((exchangeInfo.amount > 0) && (compareSlippage == 0) && (anotherCompareSlippage == 0)) throw 407;
             reserveToncoinsOnBalance(GAS_STORAGE, 0);
             storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.createdAt, 0);
             
@@ -312,24 +293,6 @@ fun onInternalMessage(in: InMessage) {
             storage.save();
             return;
         }
-
-        RevertMatchOrder => {
-            var exchangeInfo = storage.exchangeInfo.load();
-            storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.createdAt, 0);
-            exchangeInfo.amount += msg.amount;
-            
-            simpleMessage(
-                msg.matcher,
-                0,
-                beginCell().storeUint(0xecd3ad8e, 32).endCell(), // revert ton for match c'revert' = 0xecd3ad8e
-                SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE
-            );
-
-            storage.exchangeInfo = exchangeInfo.toCell();
-            storage.save();
-            return;
-        }
-
         CloseOrder => {
             storage.verifySender(in.senderAddress, null, null, null, null, 2);
             // assert(in.senderAddress == storage.owner) throw 403;
@@ -362,6 +325,27 @@ fun onInternalMessage(in: InMessage) {
     }
 }
 
+type BouncedMessage = InternalMatchOrder
+
+fun onBouncedMessage(in: InMessageBounced) {
+    var storage = lazy Storage.fromCell(contract.getData());
+
+    val rich = lazy RichBounceBody.fromSlice(in.bouncedBody);
+
+    var msg = lazy BouncedMessage.fromCell(rich.originalBody);
+    match (msg) {
+        InternalMatchOrder => {
+            var msgExchangeInfo = msg.matchExchangeInfo.load();
+            var storageExchangeInfo = storage.exchangeInfo.load();
+            storageExchangeInfo.amount += msgExchangeInfo.amount;
+            storage.exchangeInfo = storageExchangeInfo.toCell();
+            storage.save();
+            simpleMessage(msg.matcher, 0, beginCell().storeUint(0xecd3ad8e, 32).endCell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            return;   
+        }
+    }
+    return;
+}
 
 fun Storage.verifySender(mutate self, senderAddress: address, exchangeInfo: ExchangeInfo | null, anotherVault: address | null, anotherOrderOwner: address | null, createdAt: uint32 | null, typeVerify: int) {
     match (typeVerify) {
@@ -374,7 +358,7 @@ fun Storage.verifySender(mutate self, senderAddress: address, exchangeInfo: Exch
                 contract.getCode(),
                 createdAt!
             );
-            var generatedAnotherOrderAddress = address.fromValidBuilder(anotherOrder.buildAddress());
+            var generatedAnotherOrderAddress = anotherOrder.calculateAddress();
             assert(senderAddress == generatedAnotherOrderAddress) throw 403;
         }
         1 => {
