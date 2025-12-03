@@ -3,16 +3,6 @@ import "utils/fees"
 import "utils/jetton_utils"
 import "utils/op"
 
-struct ComissionInfo {
-    comissionNum: uint14
-    comissionDenom: uint14
-}
-
-struct MatcherFeeInfo {
-    comissionNum: uint14
-    comissionDenom: uint14
-}
-
 struct JettonInfo {
     jettonMinter: address
 }
@@ -29,10 +19,7 @@ struct Storage {
     fromJetton: Cell<JettonInfo>?
     randomHash: uint256
     amount: uint128
-    comissionInfo: Cell<ComissionInfo>?
-    comissionInfoMatcher: Cell<MatcherFeeInfo>?
 }
-
 
 struct ToJettonInfo {
     jettonMinter: address
@@ -50,13 +37,22 @@ struct ( 0x12966c79 ) VaultJettonTransfer {
     amountTransfer: coins
     createdAtOrder: uint32
     closedFlag: bool
+    feeInfo: Cell<FeeInfo>
+}
+
+struct FeeInfo {
     provider: address
+    feeNum: uint14
+    feeDenom: uint14
+    matcherFeeNum: uint14
+    matcherFeeDenom: uint14
 }
 
 struct JettonTransferNotificationPayload {
     priceRate: coins
     toJetton: Cell<ToJettonInfo>?
     slippage: uint30
+    feeInfo: Cell<FeeInfo>
 }
 
 struct ( 0x7362d09c ) JettonTransferNotification {
@@ -67,8 +63,6 @@ struct ( 0x7362d09c ) JettonTransferNotification {
 }
 
 struct ( 0x2717c4a2 ) InitVault {
-    comissionInfo: Cell<ComissionInfo>
-    comissionInfoMatcher: Cell<MatcherFeeInfo>
 }
 
 struct ( 0xcbcd047e ) TonTransfer {
@@ -76,6 +70,7 @@ struct ( 0xcbcd047e ) TonTransfer {
     toJetton: Cell<ToJettonInfo>
     priceRate: coins
     slippage: uint30
+    feeInfo: Cell<FeeInfo>
 }
 
 struct (0xee83652a) WithDraw {
@@ -88,12 +83,6 @@ type AllowedMessage = VaultJettonTransfer | JettonTransferNotification | InitVau
 fun Storage.save(self) {
     contract.setData(self.toCell())
 }
-
-@inline_ref
-fun Storage.serialize(self): cell {
-    return self.toCell();
-}
-
 
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());
@@ -115,18 +104,20 @@ fun onInternalMessage(in: InMessage) {
             );
             var generatedOrderAddress = generatedOrder.calculateAddress();
             assert(generatedOrderAddress == in.senderAddress) throw 403;
-            var comissionInfo = storage.comissionInfo!.load();
-            var matcherFeeInfo = storage.comissionInfoMatcher!.load();
-
+            val feeInfo = msg.feeInfo.load();
             var transferAmount = msg.amountTransfer;
             var matcherFeeAmount = 0;
             var feeAmount = 0;
 
             if (msg.closedFlag == false) {
-                feeAmount = mulDivFloor(msg.amountTransfer, comissionInfo.comissionNum, comissionInfo.comissionDenom);
-                transferAmount -= feeAmount;
-                matcherFeeAmount = mulDivFloor(msg.amountTransfer, matcherFeeInfo.comissionNum, matcherFeeInfo.comissionDenom);
-                transferAmount -= matcherFeeAmount;
+                if ((feeInfo.feeNum > 0) && (feeInfo.feeDenom > 0)) {
+                    feeAmount = mulDivFloor(msg.amountTransfer, feeInfo.feeNum, feeInfo.feeDenom);
+                    transferAmount -= feeAmount;
+                }
+                if ((feeInfo.matcherFeeNum > 0) && (feeInfo.matcherFeeDenom > 0)) {
+                    matcherFeeAmount = mulDivFloor(msg.amountTransfer, feeInfo.matcherFeeNum, feeInfo.matcherFeeDenom);
+                    transferAmount -= matcherFeeAmount;
+                }
             }
 
             if (storage.fromJetton != null) {
@@ -145,7 +136,7 @@ fun onInternalMessage(in: InMessage) {
                 }
                 if (feeAmount > 0) {
                     sendModeTransfer = SEND_MODE_CARRY_ALL_BALANCE;
-                    sendAddMatcherFee(msg.provider, feeAmount,codesInfo.matcherFeeCollectorCode!, GAS_MATCHER_FEE_COLLECTOR_ADD_FEE, SEND_MODE_REGULAR);
+                    sendAddMatcherFee(feeInfo.provider, feeAmount,codesInfo.matcherFeeCollectorCode!, GAS_MATCHER_FEE_COLLECTOR_ADD_FEE, SEND_MODE_REGULAR);
                 }
 
                 sendJettonTransfer(
@@ -172,7 +163,7 @@ fun onInternalMessage(in: InMessage) {
                     sendAddMatcherFee(addresses.matcher, matcherFeeAmount, codesInfo.matcherFeeCollectorCode!, GAS_MATCHER_FEE_COLLECTOR_ADD_FEE, SEND_MODE_REGULAR);
                 }
                 if (feeAmount > 0) {
-                    sendAddMatcherFee(msg.provider, feeAmount,codesInfo.matcherFeeCollectorCode!, GAS_MATCHER_FEE_COLLECTOR_ADD_FEE, SEND_MODE_REGULAR);
+                    sendAddMatcherFee(feeInfo.provider, feeAmount,codesInfo.matcherFeeCollectorCode!, GAS_MATCHER_FEE_COLLECTOR_ADD_FEE, SEND_MODE_REGULAR);
                 }
 
                 simpleMessage(addresses.matcher, 0, bodyRevert, SEND_MODE_CARRY_ALL_BALANCE);
@@ -191,7 +182,7 @@ fun onInternalMessage(in: InMessage) {
             assert(msg.forward_payload != null) throw 427;
             storage.amount += msg.amount;
             var forwardPayload = msg.forward_payload!.load();
-            storage.sendCreateOrder(storage.fromJetton, forwardPayload.toJetton, msg.sender, msg.amount, forwardPayload.priceRate, forwardPayload.slippage, 0, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            storage.sendCreateOrder(storage.fromJetton, forwardPayload.toJetton, msg.sender, msg.amount, forwardPayload.priceRate, forwardPayload.slippage, forwardPayload.feeInfo, 0, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             storage.save();
             return;
         }
@@ -200,15 +191,13 @@ fun onInternalMessage(in: InMessage) {
             reserveToncoinsOnBalance(GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_TON_TRANSFER, 1);
             assert(storage.fromJetton == null) throw 403;
             storage.amount += msg.amount;
-            storage.sendCreateOrder(null, msg.toJetton, in.senderAddress, msg.amount, msg.priceRate, msg.slippage, 0, SEND_MODE_CARRY_ALL_BALANCE);
+            storage.sendCreateOrder(null, msg.toJetton, in.senderAddress, msg.amount, msg.priceRate, msg.slippage, msg.feeInfo, 0, SEND_MODE_CARRY_ALL_BALANCE);
             storage.save();
             return;
         }
         InitVault => {
             assert(in.senderAddress == storage.vault_factory) throw 422;
             assert(in.valueCoins >= GAS_VAULT_INIT + GAS_STORAGE) throw 422;
-            storage.comissionInfo = msg.comissionInfo;
-            storage.comissionInfoMatcher = msg.comissionInfoMatcher;
             storage.save();
             return;
         }
@@ -240,7 +229,7 @@ fun onInternalMessage(in: InMessage) {
 }
 
 
-fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, owner: address, amount: coins, priceRate: coins, slippage: uint30, value: coins, sendMode: int) {
+fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, owner: address, amount: coins, priceRate: coins, slippage: uint30, feeInfo: Cell<FeeInfo>, value: coins, sendMode: int) {
     var order: AutoDeployAddress = generateOrder(
         contract.getAddress(),
         owner,
@@ -260,6 +249,7 @@ fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, own
             .storeCoins(amount)
             .storeCoins(priceRate)
             .storeUint(slippage, 30)
+            .storeRef(feeInfo)
         .endCell()
     });
 
@@ -292,6 +282,24 @@ fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
     msg.send(sendMode);
 }
 
+
+fun calculateJettonWallet(jettonWalletCode: cell, jettonMaster: address, owner: address): AutoDeployAddress {
+    var jettonWalletData: cell = beginCell()
+        .storeUint(0, 4)
+        .storeCoins(0)
+        .storeAddress(owner)
+        .storeAddress(jettonMaster)
+    .endCell();
+
+    var jettonWallet = AutoDeployAddress {
+        stateInit: {
+            code: jettonWalletCode,
+            data: jettonWalletData
+        }
+    };
+
+    return jettonWallet;
+}
 
 fun calculateJettonWallet(jettonWalletCode: cell, jettonMaster: address, owner: address): AutoDeployAddress {
     var jettonWalletData: cell = beginCell()
@@ -343,11 +351,4 @@ get fun getCodes() {
     val codesInfo = storage.codesInfo.load();
 
     return (codesInfo.jettonWalletCode, codesInfo.orderCode, codesInfo.matcherFeeCollectorCode)
-}
-
-get fun getComissionInfo() {
-    var storage = lazy Storage.fromCell(contract.getData());
-    val comissionInfo = storage.comissionInfo!.load();
-    val comissionInfoMatcher = storage.comissionInfoMatcher!.load();
-    return (comissionInfo.comissionNum, comissionInfo.comissionDenom, comissionInfoMatcher.comissionNum, comissionInfoMatcher.comissionDenom);
 }
