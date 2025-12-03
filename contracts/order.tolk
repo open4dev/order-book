@@ -13,13 +13,37 @@ struct ExchangeInfo {
     slippage: uint30
 }
 
+struct FeeInfo {
+    provider: address
+    feeNum: uint14
+    feeDenom: uint14
+    matcherFeeNum: uint14
+    matcherFeeDenom: uint14
+}
+
+
 struct Storage {
     owner: address
     vault: address
+    feeInfo: Cell<FeeInfo>?
     exchangeInfo: Cell<ExchangeInfo>
     createdAt: uint32
 }
 
+struct VaultJettonTransferAddresses {
+    ownerOrder: address
+    matcher: address
+    anotherOwnerOrder: address
+}
+
+struct ( 0x12966c79 ) VaultTransferJetton {
+    addresses: Cell<VaultJettonTransferAddresses>
+    toJetton: Cell<JettonInfo>?
+    amountTransfer: coins
+    createdAtOrder: uint32
+    closedFlag: bool
+    feeInfo: Cell<FeeInfo>
+}
 
 fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
     var msg = createMessage({
@@ -60,21 +84,25 @@ fun Storage.sendInternalMatchOrder(mutate self, anotherOrder: address, msgBody: 
     msg.send(sendMode);
 }
 
-fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: cell?, closedFlag: bool, destination: address, matcher: address, sendMode: int) {
+fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: Cell<JettonInfo>?, closedFlag: bool, destination: address, matcher: address, sendMode: int) {
+    var addresses = VaultJettonTransferAddresses {
+        ownerOrder: self.owner,
+        matcher: matcher,
+        anotherOwnerOrder: destination,
+    };
+    var transferJetton = VaultTransferJetton {
+        addresses: addresses.toCell(),
+        toJetton: toJetton,
+        amountTransfer: amount,
+        createdAtOrder: self.createdAt,
+        closedFlag: closedFlag,
+        feeInfo: self.feeInfo!
+    };
     var msg = createMessage({
         bounce: false,
         dest: self.vault,
         value: value,
-        body: beginCell()
-            .storeUint(0x12966c79, 32)
-            .storeAddress(self.owner)
-            .storeAddress(matcher)
-            .storeMaybeRef(toJetton)
-            .storeCoins(amount)
-            .storeUint(self.createdAt, 32)
-            .storeAddress(destination)
-            .storeBool(closedFlag)
-        .endCell()
+        body: transferJetton
     });
     msg.send(sendMode);
 }
@@ -101,25 +129,6 @@ fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, s
     });
     msg.send(sendMode);
 }
-
-
-fun Storage.sendRevertMatchOrder(mutate self, value: coins, amount: coins, dest: address, matcher: address, sendMode: int) {
-    var msg = createMessage({
-        bounce: false,
-        dest: dest,
-        value: value,
-        body: beginCell()
-            .storeUint(0xf175e4cd, 32)
-            .storeAddress(self.vault)
-            .storeAddress(self.owner)
-            .storeAddress(matcher)
-            .storeUint(self.createdAt, 32)
-            .storeCoins(amount)
-        .endCell()
-    });
-    msg.send(sendMode);
-}
-
 
 fun Storage.save(self) {
     contract.setData(self.toCell())
@@ -156,6 +165,7 @@ struct ( 0x2d0e1e1b ) InitOrder {
     amount: coins
     priceRate: coins
     slippage: uint30
+    feeInfo: Cell<FeeInfo>
 }
 
 struct SuccessInfo {
@@ -319,6 +329,7 @@ fun onInternalMessage(in: InMessage) {
             exchangeInfo.priceRate = msg.priceRate;
             exchangeInfo.slippage = msg.slippage;
             storage.exchangeInfo = exchangeInfo.toCell();
+            storage.feeInfo = msg.feeInfo;
             storage.save();
             return; 
         }

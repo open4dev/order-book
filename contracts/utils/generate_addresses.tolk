@@ -17,6 +17,7 @@ fun generateOrder(
     var orderInitData = beginCell()
         .storeAddress(orderOwner)
         .storeAddress(vault)
+        .storeMaybeRef(null)
         .storeRef(orderInitDataExchangeInfo)
         .storeUint(createdAt, 32)
     .endCell();

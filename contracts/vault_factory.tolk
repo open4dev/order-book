@@ -12,7 +12,6 @@ struct ComissionInfo {
 struct VaultComissionInfo {
     comissionNum: uint14
     comissionDenom: uint14
-    feeAmount: coins
 }
 
 struct CodesInfo {
@@ -64,15 +63,7 @@ struct ( 0x81e36595 ) InitVaultFactory { // "InitVaultFactory"c
 
 }
 
-struct ( 0xec9a92f6 ) WithDraw {
-    vaultAddress: address
-}
-
-type AllowedMessage = CreateVault | ChangeOwner | ChangeCommission | WithDraw | InitVaultFactory
-
-fun Storage.load() {
-    return Storage.fromCell(contract.getData());
-}
+type AllowedMessage = CreateVault | ChangeOwner | ChangeCommission | InitVaultFactory
 
 fun Storage.save(self) {
     contract.setData(self.toCell())
@@ -101,7 +92,6 @@ fun onInternalMessage(in: InMessage) {
             var vaultComissionInfo = VaultComissionInfo {
                 comissionNum: comissionInfo.comission_num,
                 comissionDenom: comissionInfo.comission_denom,
-                feeAmount: 0
             };
 
             var reply = createMessage({
@@ -110,8 +100,6 @@ fun onInternalMessage(in: InMessage) {
                 value: GAS_VAULT_INIT + GAS_STORAGE,
                 body: beginCell()
                     .storeUint(0x2717c4a2, 32)
-                    .storeRef(vaultComissionInfo.toCell())
-                    .storeRef(storage.comissionInfoMatcher)
                 .endCell()
                 
             });
@@ -143,28 +131,8 @@ fun onInternalMessage(in: InMessage) {
             assert(in.valueCoins >= GAS_STORAGE) throw 422;
             return;
         }
-        WithDraw => {
-            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
-            assert(in.valueCoins >= GAS_VAULT_FACTORY_WITHDRAW + GAS_VAULT_WITHDRAW + GAS_JETTON_WALLET_TRANSFER) throw 422;
-            sendWithDraw(msg.vaultAddress, storage.owner);
-            return;
-        }
     }
 }
-
-fun sendWithDraw(vaultAddress: address, owner: address): void {
-    var msgWithDraw = createMessage({
-        bounce: false,
-        dest: vaultAddress,
-        value: 0,
-        body: beginCell()
-            .storeUint(0xec9a92f6, 32)
-            .storeAddress(owner)
-            .endCell()
-    });
-    msgWithDraw.send(SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
-}
-
 
 fun prepareInitVault(
     orderCode: cell,

@@ -6,10 +6,6 @@ struct Storage {
     amount: coins
 }
 
-fun Storage.load() {
-    return Storage.fromCell(contract.getData());
-}
-
 fun Storage.save(mutate self) {
     contract.setData(self.toCell())
 }
@@ -61,6 +57,6 @@ fun onInternalMessage(in: InMessage) {
 }
 
 get fun getData() {
-    var storage = Storage.load();
+    var storage = lazy Storage.fromCell(contract.getData());
     return (storage.vault, storage.owner, storage.amount);
 }

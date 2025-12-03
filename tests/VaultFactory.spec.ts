@@ -141,16 +141,16 @@ describe('VaultFactory', () => {
 
 
         const resultUser1FromJettonWalletMint = await fromJettonMinter.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined)
-        console.log("FromJettonMinter TRS")
-        printTransactionFees(resultUser1FromJettonWalletMint.transactions)
+        // console.log("FromJettonMinter TRS")
+        // printTransactionFees(resultUser1FromJettonWalletMint.transactions)
 
         fromJettonWallet = getJettonWalletWrapper(blockchain, resultUser1FromJettonWalletMint, fromJettonMinter.address)
 
         const resultCreateVaultFrom = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(0.0065 + 0.0019 + 0.01), jettonWalletCodeCell, fromJettonMinter.address)
 
-        console.log("fromVault TRS")
+        // console.log("fromVault TRS")
 
-        printTransactionFees(resultCreateVaultFrom.transactions)
+        // printTransactionFees(resultCreateVaultFrom.transactions)
 
         fromVault = getVaultWrapper(blockchain, resultCreateVaultFrom)
 
@@ -164,9 +164,9 @@ describe('VaultFactory', () => {
 
         fromVaultTon = getVaultWrapper(blockchain, resultCreateFromVaultTon)
 
-        console.log("fromVaultTon TRS")
+        // console.log("fromVaultTon TRS")
 
-        printTransactionFees(resultCreateFromVaultTon.transactions)
+        // printTransactionFees(resultCreateFromVaultTon.transactions)
 
 
         const toJettonMinterContent: JettonMinterContent = {
@@ -195,19 +195,19 @@ describe('VaultFactory', () => {
 
         const resultUser2ToJettonWalletMint = await toJettonMinter.sendMint(deployer.getSender(), user2.address, toNano(100), null, null, null, undefined, undefined)
 
-        console.log("ToJettonMinter TRS")
-        printTransactionFees(resultUser2ToJettonWalletMint.transactions)
+        // console.log("ToJettonMinter TRS")
+        // printTransactionFees(resultUser2ToJettonWalletMint.transactions)
 
         toJettonWallet = getJettonWalletWrapper(blockchain, resultUser2ToJettonWalletMint, toJettonMinter.address)
 
         const resultCreateVaultTo = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(1), jettonWalletCodeCell, toJettonMinter.address)
 
-        console.log("toVault TRS")
+        // console.log("toVault TRS")
 
-        printTransactionFees(resultCreateVaultTo.transactions)
+        // printTransactionFees(resultCreateVaultTo.transactions)
 
         toVault = getVaultWrapper(blockchain, resultCreateVaultTo)
-        console.log(toVault.address)
+        // console.log(toVault.address)
 
     });
 
@@ -835,132 +835,119 @@ describe('VaultFactory', () => {
         });
     })
 
-    it("Success withdraw jetton", async () => {
-        const commissionInfoBefore = await fromVault.getComissionInfo();
-        expect(commissionInfoBefore.feeAmount).toEqual(0n);
-        const order1 = await fromJettonWallet.sendCreateOrder(user1.getSender(), toNano(0.5), {
-            jettonAmount: toNano(10),
-            vault: fromVault.address,
-            owner: user1.address,
-            priceRate: toNano(1),
-            slippage: toNano(0.01),
-            toJettonMinter: toJettonMinter.address,
-            forwardTonAmount: toNano(0.1),
-        })
+    // DELETED
+    // it("Success withdraw jetton", async () => {
+    //     const order1 = await fromJettonWallet.sendCreateOrder(user1.getSender(), toNano(0.5), {
+    //         jettonAmount: toNano(10),
+    //         vault: fromVault.address,
+    //         owner: user1.address,
+    //         priceRate: toNano(1),
+    //         slippage: toNano(0.01),
+    //         toJettonMinter: toJettonMinter.address,
+    //         forwardTonAmount: toNano(0.1),
+    //     })
 
-        const order2 = await toJettonWallet.sendCreateOrder(user2.getSender(), toNano(0.5), {
-            jettonAmount: toNano(10),
-            vault: toVault.address,
-            owner: user2.address,
-            priceRate: toNano(1),
-            slippage: toNano(0.01),
-            toJettonMinter: fromJettonMinter.address,
-            forwardTonAmount: toNano(0.1),
-        })
+    //     const order2 = await toJettonWallet.sendCreateOrder(user2.getSender(), toNano(0.5), {
+    //         jettonAmount: toNano(10),
+    //         vault: toVault.address,
+    //         owner: user2.address,
+    //         priceRate: toNano(1),
+    //         slippage: toNano(0.01),
+    //         toJettonMinter: fromJettonMinter.address,
+    //         forwardTonAmount: toNano(0.1),
+    //     })
 
-        const fromOrder = getOrderWrapper(blockchain, order1, fromVault.address)
-        const toOrder = getOrderWrapper(blockchain, order2, toVault.address)
+    //     const fromOrder = getOrderWrapper(blockchain, order1, fromVault.address)
+    //     const toOrder = getOrderWrapper(blockchain, order2, toVault.address)
 
-        const resultMatchOrder = await fromOrder.sendMatchOrder(
-            user1.getSender(),
-            toNano(1),
-            {
-                anotherVault: toVault.address,
-                anotherOrderOwner: user2.address,
-                anotherOrder: toOrder.address,
-                createdAt: (await toOrder.getData()).createdAt,
-                amount: toNano(10),
-            }
-        )
+    //     const resultMatchOrder = await fromOrder.sendMatchOrder(
+    //         user1.getSender(),
+    //         toNano(1),
+    //         {
+    //             anotherVault: toVault.address,
+    //             anotherOrderOwner: user2.address,
+    //             anotherOrder: toOrder.address,
+    //             createdAt: (await toOrder.getData()).createdAt,
+    //             amount: toNano(10),
+    //         }
+    //     )
 
-        printTransactionFees(resultMatchOrder.transactions)
-
-
-        const commissionInfoMatcherBefore = await fromVault.getComissionInfo();
-        expect(commissionInfoMatcherBefore.feeAmount).toEqual(toNano(10 * 2 / 100));
-
-        const res = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.2), fromVault.address)
-        expect(res.transactions).not.toHaveTransaction({
-            success: false,
-        });
-        printTransactionFees(res.transactions)
-
-        const commissionInfoAfter = await fromVault.getComissionInfo();
-        expect(commissionInfoAfter.feeAmount).toEqual(0n);
-    })
-
-    it("Error withdraw not from owner", async () => {
-        const res = await vaultFactory.sendWithDraw(user1.getSender(), toNano(0.2), fromVault.address)
-        expect(res.transactions).toHaveTransaction({
-            from: user1.address,
-            to: vaultFactory.address,
-            success: false,
-            exitCode: 403
-        });
-    })
-
-    it("Error withdraw not enough gas", async () => {
-        const res = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.001), fromVault.address)
-        expect(res.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: vaultFactory.address,
-            success: false,
-            exitCode: 422
-        });
-    })
-
-    it("Success withdraw ton", async () => {
-        const commissionInfoBefore = await fromVault.getComissionInfo();
-        expect(commissionInfoBefore.feeAmount).toEqual(0n);
-        const order1 = await fromVaultTon.sendCreateOrder(user1.getSender(), toNano(11), {
-            amount: toNano(10),
-            priceRate: toNano(1),
-            slippage: toNano(0.01),
-            toJettonMinter: toJettonMinter.address,
-        })
-
-        const order2 = await toJettonWallet.sendCreateOrder(user2.getSender(), toNano(0.5), {
-            jettonAmount: toNano(10),
-            vault: toVault.address,
-            owner: user2.address,
-            priceRate: toNano(1),
-            slippage: toNano(0.01),
-            toJettonMinter: null,
-            forwardTonAmount: toNano(0.1),
-        })
-
-        const fromOrder = getOrderWrapper(blockchain, order1, fromVaultTon.address)
-        const toOrder = getOrderWrapper(blockchain, order2, toVault.address)
-
-        const resultMatchOrder = await fromOrder.sendMatchOrder(
-            user1.getSender(),
-            toNano(1),
-            {
-                anotherVault: toVault.address,
-                anotherOrderOwner: user2.address,
-                anotherOrder: toOrder.address,
-                createdAt: (await toOrder.getData()).createdAt,
-                amount: toNano(10),
-            }
-        )
-
-        printTransactionFees(resultMatchOrder.transactions)
+    //     printTransactionFees(resultMatchOrder.transactions)
 
 
-        const commissionInfoMatcherBefore = await fromVaultTon.getComissionInfo();
-        expect(commissionInfoMatcherBefore.feeAmount).toEqual(toNano(10 * 2 / 100));
 
-        const res = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.2), fromVaultTon.address)
-        expect(res.transactions).not.toHaveTransaction({
-            from: deployer.address,
-            to: vaultFactory.address,
-            success: false,
-        });
-        printTransactionFees(res.transactions)
+    //     const res = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.2), fromVault.address)
+    //     expect(res.transactions).not.toHaveTransaction({
+    //         success: false,
+    //     });
+    //     printTransactionFees(res.transactions)
+    // })
 
-        const commissionInfoAfter = await fromVaultTon.getComissionInfo();
-        expect(commissionInfoAfter.feeAmount).toEqual(0n);
-    })
+    // it("Error withdraw not from owner", async () => {
+    //     const res = await vaultFactory.sendWithDraw(user1.getSender(), toNano(0.2), fromVault.address)
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: user1.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //         exitCode: 403
+    //     });
+    // })
+
+    // it("Error withdraw not enough gas", async () => {
+    //     const res = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.001), fromVault.address)
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //         exitCode: 422
+    //     });
+    // })
+
+    // it("Success withdraw ton", async () => {
+    //     const order1 = await fromVaultTon.sendCreateOrder(user1.getSender(), toNano(11), {
+    //         amount: toNano(10),
+    //         priceRate: toNano(1),
+    //         slippage: toNano(0.01),
+    //         toJettonMinter: toJettonMinter.address,
+    //     })
+
+    //     const order2 = await toJettonWallet.sendCreateOrder(user2.getSender(), toNano(0.5), {
+    //         jettonAmount: toNano(10),
+    //         vault: toVault.address,
+    //         owner: user2.address,
+    //         priceRate: toNano(1),
+    //         slippage: toNano(0.01),
+    //         toJettonMinter: null,
+    //         forwardTonAmount: toNano(0.1),
+    //     })
+
+    //     const fromOrder = getOrderWrapper(blockchain, order1, fromVaultTon.address)
+    //     const toOrder = getOrderWrapper(blockchain, order2, toVault.address)
+
+    //     const resultMatchOrder = await fromOrder.sendMatchOrder(
+    //         user1.getSender(),
+    //         toNano(1),
+    //         {
+    //             anotherVault: toVault.address,
+    //             anotherOrderOwner: user2.address,
+    //             anotherOrder: toOrder.address,
+    //             createdAt: (await toOrder.getData()).createdAt,
+    //             amount: toNano(10),
+    //         }
+    //     )
+
+    //     printTransactionFees(resultMatchOrder.transactions)
+
+
+    //     const res = await vaultFactory.sendWithDraw(deployer.getSender(), toNano(0.2), fromVaultTon.address)
+    //     expect(res.transactions).not.toHaveTransaction({
+    //         from: deployer.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //     });
+    //     printTransactionFees(res.transactions)
+
+    // })
 
 
 

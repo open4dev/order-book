@@ -20,10 +20,15 @@ export class Vault implements Contract {
     }
 
     async sendDeploy(provider: ContractProvider, via: Sender, value: bigint) {
+        const comissionInfo = beginCell().store
+        
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell(),
+            body: beginCell()
+            .storeUint(0x2717c4a2, 32)
+
+            .endCell(),
         });
     }
 
@@ -32,6 +37,11 @@ export class Vault implements Contract {
         priceRate: bigint,
         slippage: bigint, // uint30
         toJettonMinter: Address,
+        providerFee: Address,
+        feeNum: number, // uint14
+        feeDenom: number, // uint14
+        matcherFeeNum: number, // uint14
+        matcherFeeDenom: number, // uint14
     }) {
         // struct ( 0xcbcd047e ) TonTransfer {
         //     amount: coins,
@@ -45,10 +55,21 @@ export class Vault implements Contract {
             .storeUint(0xcbcd047e, 32)
             .storeCoins(params.amount)
             .storeRef(
-                beginCell().storeAddress(params.toJettonMinter).endCell()
+                beginCell()
+                    .storeAddress(params.toJettonMinter)
+                .endCell()
             )
             .storeCoins(params.priceRate)
             .storeUint(params.slippage, 30)
+            .storeRef(
+                beginCell()
+                    .storeAddress(params.providerFee)
+                    .storeUint(params.feeNum, 14)
+                    .storeUint(params.feeDenom, 14)
+                    .storeUint(params.matcherFeeNum, 14)
+                    .storeUint(params.matcherFeeDenom, 14)
+                .endCell()
+            )
             .endCell(),
         });
     }
@@ -68,17 +89,6 @@ export class Vault implements Contract {
         return {
             jettonWalletCode: stack.readCell(),
             orderCode: stack.readCell()
-        };
-    }
-
-    async getComissionInfo(provider: ContractProvider) {
-        const { stack } = await provider.get('getComissionInfo', []);
-        return {
-            comissionNum: stack.readNumber(),
-            comissionDenom: stack.readNumber(),
-            feeAmount: stack.readBigNumber(),
-            comissionNumMatcher: stack.readNumber(),
-            comissionDenomMatcher: stack.readNumber(),
         };
     }
 }

@@ -106,17 +106,6 @@ export class VaultFactory implements Contract {
         });
     }
 
-    async sendWithDraw(provider: ContractProvider, via: Sender, value: bigint, vaultAddress: Address) {
-        await provider.internal(via, {
-            value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-            .storeUint(0xec9a92f6, 32)
-            .storeAddress(vaultAddress)
-            .endCell(),
-        });
-    }
-
     async getOwner(provider: ContractProvider) {
         const { stack } = await provider.get('getOwner', []);
         return stack.readAddress();
