@@ -4,16 +4,6 @@ const MAX_COMMISSION = 20;
 const MAX_COMMISSION_MATCHER = 5;
 
 
-struct ComissionInfo {
-    comission_num: uint14
-    comission_denom: uint14
-}
-
-struct VaultComissionInfo {
-    comissionNum: uint14
-    comissionDenom: uint14
-}
-
 struct CodesInfo {
     vaultCode: cell
     orderCode: cell
@@ -23,9 +13,6 @@ struct CodesInfo {
 struct Storage {
     owner: address,
     codesInfo: Cell<CodesInfo>,
-    comissionInfo: Cell<ComissionInfo>
-    comissionInfoMatcher: Cell<ComissionInfo>
-    
 }
 
 @inline_ref
