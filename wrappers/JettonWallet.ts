@@ -158,6 +158,26 @@ export class JettonWallet implements Contract {
             forwardPayload
         );
     }
+
+    async sendCreateOrderWithoutForwardPayload(provider: ContractProvider, via: Sender, value: bigint, params: {
+        jettonAmount: bigint,
+        vault: Address,
+        owner: Address,
+        customPayload?: Cell | null,
+        forwardTonAmount: bigint,
+    }) {
+        await this.sendTransfer(
+            provider,
+            via,
+            value,
+            params.jettonAmount,
+            params.vault,
+            params.owner,
+            params.customPayload ?? null,
+            params.forwardTonAmount,
+            null
+        );
+    }
     /*
       burn#595f07bc query_id:uint64 amount:(VarUInteger 16)
                     response_destination:MsgAddress custom_payload:(Maybe ^Cell)

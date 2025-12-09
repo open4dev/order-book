@@ -4,7 +4,7 @@ export type VaultFactoryConfig = {
     owner: Address;
     vaultCode: Cell;
     orderCode: Cell;
-    matcherFeeCollectorCode: Cell;
+    feeCollectorCode: Cell;
     comissionInfo: {
         comission_num: number;
         comission_denom: number;
@@ -22,7 +22,7 @@ export function vaultFactoryConfigToCell(config: VaultFactoryConfig): Cell {
         beginCell()
         .storeRef(config.vaultCode)
         .storeRef(config.orderCode)
-        .storeRef(config.matcherFeeCollectorCode)
+        .storeRef(config.feeCollectorCode)
         .endCell()
     )
     .storeRef(
@@ -82,26 +82,6 @@ export class VaultFactory implements Contract {
             body: beginCell()
             .storeUint(0xb6cf7f0f, 32)
             .storeAddress(newOwner)
-            .endCell(),
-        });
-    }
-
-    async sendChangeCommission(provider: ContractProvider, via: Sender, value: bigint, newCommission: {
-        comission_num: number;
-        comission_denom: number;
-    }, matcher: boolean) {
-        await provider.internal(via, {
-            value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-            .storeUint(0x4e86ed8b, 32)
-            .storeRef(
-                beginCell()
-                .storeUint(newCommission.comission_num, 14)
-                .storeUint(newCommission.comission_denom, 14)
-                .endCell()
-            )
-            .storeUint(matcher ? 1 : 0, 1)
             .endCell(),
         });
     }

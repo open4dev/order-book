@@ -9,10 +9,10 @@ import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
 import { Vault } from '../wrappers/Vault';
 import { Vault2 } from '../wrappers/Vault2';
 import { Order } from '../wrappers/Order';
-import { MatcherFeeCollector } from '../wrappers/MatcherFeeCollector';
+import { FeeCollector } from '../wrappers/MatcherFeeCollector';
 
 
-function getJettonWalletWrapper(blockchain: Blockchain, trs: SendMessageResult, jettonMinter: Address)  {
+export function getJettonWalletWrapper(blockchain: Blockchain, trs: SendMessageResult, jettonMinter: Address)  {
     const jettonDeployTrs = trs.transactions.find((e) => {
         const tx = flattenTransaction(e);
         return tx.op == 0x178d4519;
@@ -22,7 +22,7 @@ function getJettonWalletWrapper(blockchain: Blockchain, trs: SendMessageResult, 
     return jettonWallet;
 }
 
-function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult)  {
+export function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult)  {
     const vaultDeployTrs = trs.transactions.find((e) => {
         const tx = flattenTransaction(e);
         return tx.op == 0x2717c4a2;
@@ -32,24 +32,24 @@ function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult)  {
     return vault;
 }
 
-function getMatcherFeeCollectorWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
-    const matcherFeeCollectorDeployTrs = trs.transactions.find((e) => {
+export function getFeeCollectorWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
+    const feeCollectorDeployTrs = trs.transactions.find((e) => {
         const tx = flattenTransaction(e);
         // return (tx.op == 0xfc7532f4 && tx.from!.equals(vaultAddress));
-        return tx.from?.toRawString() == vaultAddress.toRawString();
-
+        // return tx.from?.toRawString() == vaultAddress.toRawString();
+        return (tx.op == 0xfc7532f4) && (tx.from?.equals(vaultAddress));
     });
     
-    if (!matcherFeeCollectorDeployTrs) {
-        throw new Error('MatcherFeeCollector deployment transaction not found');
+    if (!feeCollectorDeployTrs) {
+        throw new Error('FeeCollector deployment transaction not found');
     }
     
-    const matcherFeeCollector = blockchain.openContract(MatcherFeeCollector.createFromAddress(flattenTransaction(matcherFeeCollectorDeployTrs).to!));
+    const feeCollector = blockchain.openContract(FeeCollector.createFromAddress(flattenTransaction(feeCollectorDeployTrs).to!));
     
-    return matcherFeeCollector;
+    return feeCollector;
 }
 
-function getOrderWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
+export function getOrderWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
     const orderDeployTrs = trs.transactions.find((e) => {
         const tx = flattenTransaction(e);
         return tx.op == 0x2d0e1e1b;
@@ -95,7 +95,7 @@ describe('VaultFactory', () => {
             owner: deployer.address,
             vaultCode: await compile('Vault'),
             orderCode: await compile('Order'),
-            matcherFeeCollectorCode: await compile('MatcherFeeCollector'),
+            feeCollectorCode: await compile('FeeCollector'),
             comissionInfo: {
                 comission_num: 2,
                 comission_denom: 100,
@@ -659,14 +659,14 @@ describe('VaultFactory', () => {
     //     console.log("After withDraw")
     //     console.log("FromVault balance", await fromVaultTon.getData())
 
-    //     const matcherFeeCollectorFromVaultTon = getMatcherFeeCollectorWrapper(blockchain, resultMatchOrder, fromVaultTon.address)
+    //     const feeCollectorFromVaultTon = getFeeCollectorWrapper(blockchain, resultMatchOrder, fromVaultTon.address)
     //     console.log("WithDraw Matcher")
-    //     const resultWithDrawMatcheFromVaultTon = await matcherFeeCollectorFromVaultTon.sendWithDraw(user1.getSender(), toNano(0.07 + 0.07))
+    //     const resultWithDrawMatcheFromVaultTon = await feeCollectorFromVaultTon.sendWithDraw(user1.getSender(), toNano(0.07 + 0.07))
     //     printTransactionFees(resultWithDrawMatcheFromVaultTon.transactions)
 
-    //     const matcherFeeCollectorFromVault = getMatcherFeeCollectorWrapper(blockchain, resultMatchOrder, fromVault.address)
+    //     const feeCollectorFromVault = getFeeCollectorWrapper(blockchain, resultMatchOrder, fromVault.address)
     //     console.log("WithDraw Matcher")
-    //     const resultWithDrawMatcherFromVault = await matcherFeeCollectorFromVault.sendWithDraw(user1.getSender(), toNano(0.07 + 0.07))
+    //     const resultWithDrawMatcherFromVault = await feeCollectorFromVault.sendWithDraw(user1.getSender(), toNano(0.07 + 0.07))
     //     printTransactionFees(resultWithDrawMatcherFromVault.transactions)
     // });
 
@@ -951,111 +951,111 @@ describe('VaultFactory', () => {
 
 
 
-    it("Change Commission - success", async () => {
-        const commission = await vaultFactory.getCommission();
-        expect(commission.comission_num).toEqual(2);
-        const res = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
-            comission_num: 3,
-            comission_denom: 100,
-        }, false)
-        expect(res.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: vaultFactory.address,
-            success: true,
-        });
-        const commissionNew = await vaultFactory.getCommission();
-        expect(commissionNew.comission_num).toEqual(3);
-        expect(commissionNew.comission_denom).toEqual(100);
-    })
+    // it("Change Commission - success", async () => {
+    //     const commission = await vaultFactory.getCommission();
+    //     expect(commission.comission_num).toEqual(2);
+    //     const res = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
+    //         comission_num: 3,
+    //         comission_denom: 100,
+    //     }, false)
+    //     expect(res.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: vaultFactory.address,
+    //         success: true,
+    //     });
+    //     const commissionNew = await vaultFactory.getCommission();
+    //     expect(commissionNew.comission_num).toEqual(3);
+    //     expect(commissionNew.comission_denom).toEqual(100);
+    // })
 
-    it("Change Commission - error not enough gas", async () => {
-        const resError = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.001), {
-            comission_num: 3,
-            comission_denom: 100,
-        }, false)
-        expect(resError.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: vaultFactory.address,
-            success: false,
-            exitCode: 422,
-        });
-    })
+    // it("Change Commission - error not enough gas", async () => {
+    //     const resError = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.001), {
+    //         comission_num: 3,
+    //         comission_denom: 100,
+    //     }, false)
+    //     expect(resError.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //         exitCode: 422,
+    //     });
+    // })
 
-    it("Change Commission - error MAX_COMMISSION", async () => {
-        const resError = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
-            comission_num: 300,
-            comission_denom: 100,
-        }, false)
-        expect(resError.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: vaultFactory.address,
-            success: false,
-            exitCode: 400,
-        });
-    })
+    // it("Change Commission - error MAX_COMMISSION", async () => {
+    //     const resError = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
+    //         comission_num: 300,
+    //         comission_denom: 100,
+    //     }, false)
+    //     expect(resError.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //         exitCode: 400,
+    //     });
+    // })
 
-    it("Change Commission - error owner", async () => {
-        const changeCommissionFromNotOwner = await vaultFactory.sendChangeCommission(user1.getSender(), toNano(0.1), {
-            comission_num: 3,
-            comission_denom: 100,
-        }, false)
-        expect(changeCommissionFromNotOwner.transactions).toHaveTransaction({
-            from: user1.address,
-            to: vaultFactory.address,
-            success: false,
-            exitCode: 403,
-        });
-    })
+    // it("Change Commission - error owner", async () => {
+    //     const changeCommissionFromNotOwner = await vaultFactory.sendChangeCommission(user1.getSender(), toNano(0.1), {
+    //         comission_num: 3,
+    //         comission_denom: 100,
+    //     }, false)
+    //     expect(changeCommissionFromNotOwner.transactions).toHaveTransaction({
+    //         from: user1.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //         exitCode: 403,
+    //     });
+    // })
 
-    it("Change Commission Matcher - success", async () => {
-        const commissionMatcher = await vaultFactory.getCommission();
-        expect(commissionMatcher.comission_num_matcher).toEqual(1);
-        expect(commissionMatcher.comission_denom_matcher).toEqual(100);
-        const resMatcher = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
-            comission_num: 3,
-            comission_denom: 100,
-        }, true)
-        expect(resMatcher.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: vaultFactory.address,
-            success: true,
-        });
-        const commissionMatcherNew = await vaultFactory.getCommission();
-        expect(commissionMatcherNew.comission_num_matcher).toEqual(3);
-        expect(commissionMatcherNew.comission_denom_matcher).toEqual(100);
-    })
+    // it("Change Commission Matcher - success", async () => {
+    //     const commissionMatcher = await vaultFactory.getCommission();
+    //     expect(commissionMatcher.comission_num_matcher).toEqual(1);
+    //     expect(commissionMatcher.comission_denom_matcher).toEqual(100);
+    //     const resMatcher = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
+    //         comission_num: 3,
+    //         comission_denom: 100,
+    //     }, true)
+    //     expect(resMatcher.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: vaultFactory.address,
+    //         success: true,
+    //     });
+    //     const commissionMatcherNew = await vaultFactory.getCommission();
+    //     expect(commissionMatcherNew.comission_num_matcher).toEqual(3);
+    //     expect(commissionMatcherNew.comission_denom_matcher).toEqual(100);
+    // })
 
-    it("Change Commission Matcher - error MAX_COMMISSION_MATCHER", async () => {
-        const commissionMatcherError = await vaultFactory.getCommission();
-        expect(commissionMatcherError.comission_num_matcher).toEqual(1);
-        expect(commissionMatcherError.comission_denom_matcher).toEqual(100);
-        const resMatcherError = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
-            comission_num: 300,
-            comission_denom: 100,
-        }, true)
-        expect(resMatcherError.transactions).toHaveTransaction({
-            from: deployer.address,
-            to: vaultFactory.address,
-            success: false,
-            exitCode: 400,
-        });
-        const commissionMatcherNewError = await vaultFactory.getCommission();
-        expect(commissionMatcherNewError.comission_num_matcher).toEqual(1);
-        expect(commissionMatcherNewError.comission_denom_matcher).toEqual(100);
-    })
+    // it("Change Commission Matcher - error MAX_COMMISSION_MATCHER", async () => {
+    //     const commissionMatcherError = await vaultFactory.getCommission();
+    //     expect(commissionMatcherError.comission_num_matcher).toEqual(1);
+    //     expect(commissionMatcherError.comission_denom_matcher).toEqual(100);
+    //     const resMatcherError = await vaultFactory.sendChangeCommission(deployer.getSender(), toNano(0.1), {
+    //         comission_num: 300,
+    //         comission_denom: 100,
+    //     }, true)
+    //     expect(resMatcherError.transactions).toHaveTransaction({
+    //         from: deployer.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //         exitCode: 400,
+    //     });
+    //     const commissionMatcherNewError = await vaultFactory.getCommission();
+    //     expect(commissionMatcherNewError.comission_num_matcher).toEqual(1);
+    //     expect(commissionMatcherNewError.comission_denom_matcher).toEqual(100);
+    // })
 
-    it("Change Commission Matcher - error owner", async () => {
-        const changeCommissionFromNotOwnerMatcher = await vaultFactory.sendChangeCommission(user1.getSender(), toNano(0.1), {
-            comission_num: 1,
-            comission_denom: 100,
-        }, true)
-        expect(changeCommissionFromNotOwnerMatcher.transactions).toHaveTransaction({
-            from: user1.address,
-            to: vaultFactory.address,
-            success: false,
-            exitCode: 403,
-        });
-    })
+    // it("Change Commission Matcher - error owner", async () => {
+    //     const changeCommissionFromNotOwnerMatcher = await vaultFactory.sendChangeCommission(user1.getSender(), toNano(0.1), {
+    //         comission_num: 1,
+    //         comission_denom: 100,
+    //     }, true)
+    //     expect(changeCommissionFromNotOwnerMatcher.transactions).toHaveTransaction({
+    //         from: user1.address,
+    //         to: vaultFactory.address,
+    //         success: false,
+    //         exitCode: 403,
+    //     });
+    // })
 
     it("Success Change Owner", async () => {
         const ownerBefore = await vaultFactory.getOwner();

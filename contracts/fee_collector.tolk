@@ -47,7 +47,7 @@ fun onInternalMessage(in: InMessage) {
             return;
         }
         AddFee => {
-            assert(in.valueCoins >= GAS_MATCHER_FEE_COLLECTOR_ADD_FEE) throw 422;
+            assert(in.valueCoins >= GAS_FEE_COLLECTOR_ADD_FEE) throw 422;
             assert(in.senderAddress == storage.vault) throw 403; // Check if the sender is the owner
             storage.amount += msg.amount;
             storage.save();

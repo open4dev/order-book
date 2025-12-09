@@ -32,7 +32,7 @@ struct Storage {
 
 struct VaultJettonTransferAddresses {
     ownerOrder: address
-    matcher: address
+    matcher: address?
     anotherOwnerOrder: address
 }
 
@@ -59,18 +59,18 @@ fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
 // Returns -1 if actual < lower bound (> slippage below reference)
 // Returns 1 if actual > upper bound (> slippage above reference)
 // Returns 0 if within [reference*(1-slippage), reference*(1+slippage)] range
-fun compareWithSlippage(actual: coins, reference: coins, slippage: uint30): int {
+fun compareWithSlippage(actual: coins, reference: coins, slippage: uint30): (int, int) {
     var denom = 1000000000; // 1e9 = 100%
     actual = mulDivFloor(ton("1"), ton("1"), actual);
     var lower = mulDivFloor(reference, denom - slippage, denom);
     if (actual < lower) {
-        return -1;
+        return (-1, 0);
     }
     var upper = mulDivFloor(reference, denom + slippage, denom);
     if (actual > upper) {
-        return 1;
+        return (1, 0);
     }
-    return 0;
+    return (0, lower);
 }
 
 
@@ -84,7 +84,7 @@ fun Storage.sendInternalMatchOrder(mutate self, anotherOrder: address, msgBody: 
     msg.send(sendMode);
 }
 
-fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: Cell<JettonInfo>?, closedFlag: bool, destination: address, matcher: address, sendMode: int) {
+fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: Cell<JettonInfo>?, closedFlag: bool, destination: address, matcher: address?, sendMode: int) {
     var addresses = VaultJettonTransferAddresses {
         ownerOrder: self.owner,
         matcher: matcher,
@@ -139,6 +139,7 @@ struct MatchExchangeInfo {
     amount: coins
     priceRate: coins
     slippage: uint30
+    feeInfo: Cell<FeeInfo>
 }
 
 struct ( 0x47ff7e25 ) MatchOrder {
@@ -210,7 +211,8 @@ fun onInternalMessage(in: InMessage) {
             var matchInternalExchangeInfo = MatchExchangeInfo {
                 amount: msg.amount,
                 priceRate: exchangeInfo.priceRate,
-                slippage: exchangeInfo.slippage
+                slippage: exchangeInfo.slippage,
+                feeInfo: storage.feeInfo!
             };
 
             var bodyInternalMatchOrder = InternalMatchOrder {
@@ -235,23 +237,52 @@ fun onInternalMessage(in: InMessage) {
         InternalMatchOrder => {
             var exchangeInfo = storage.exchangeInfo.load();
             var matchExchangeInfo = msg.matchExchangeInfo.load();
-            val compareSlippage = compareWithSlippage(matchExchangeInfo.priceRate, exchangeInfo.priceRate, exchangeInfo.slippage);
-            val anotherCompareSlippage: int = compareWithSlippage(matchExchangeInfo.priceRate, exchangeInfo.priceRate, matchExchangeInfo.slippage);
-            debug.print(exchangeInfo.amount);
-            debug.print(compareSlippage);
-            debug.print(anotherCompareSlippage);
+            var matchFeeInfo = matchExchangeInfo.feeInfo.load();
+            var feeInfo = storage.feeInfo!.load();
+            val (compareSlippage, lower) = compareWithSlippage(matchExchangeInfo.priceRate, exchangeInfo.priceRate, exchangeInfo.slippage);
+            val (anotherCompareSlippage, anotherLower) = compareWithSlippage(exchangeInfo.priceRate, matchExchangeInfo.priceRate, matchExchangeInfo.slippage);
             assert ((exchangeInfo.amount > 0) && (compareSlippage == 0) && (anotherCompareSlippage == 0)) throw 407;
             reserveToncoinsOnBalance(GAS_STORAGE, 0);
             storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.createdAt, 0);
             
-
+            // anotherGetAmount = matchExchangeInfo.amount * matchExchangeInfo.priceRate / 1e9
             var anotherGetAmount = mulDivFloor(matchExchangeInfo.amount, matchExchangeInfo.priceRate, ton("1"));
             if (anotherGetAmount > exchangeInfo.amount) {
                 anotherGetAmount = exchangeInfo.amount;
             }
+            var getAmount = mulDivFloor(anotherGetAmount, ton("1"), matchExchangeInfo.priceRate);
+
+            // check slippage with feeAmount
+            var totalFeeAmount = 0;
+            if (feeInfo.feeNum > 0 && feeInfo.feeDenom > 0) {
+                totalFeeAmount += mulDivFloor(anotherGetAmount, feeInfo.feeNum, feeInfo.feeDenom);
+            }
+            if (feeInfo.matcherFeeNum > 0 && feeInfo.matcherFeeDenom > 0) {
+                totalFeeAmount += mulDivFloor(anotherGetAmount, feeInfo.matcherFeeNum, feeInfo.matcherFeeDenom);
+            }
+            debug.print(totalFeeAmount);
+            debug.print(anotherGetAmount);
+            debug.print(lower);
+            if (mulDivFloor(anotherGetAmount - totalFeeAmount, ton("1"), getAmount) < anotherLower) {
+                throw 408;
+            }
+            var anotherTotalFeeAmount = 0;
+            if (matchFeeInfo.feeNum > 0 && matchFeeInfo.feeDenom > 0) {
+                anotherTotalFeeAmount += mulDivFloor(getAmount, matchFeeInfo.feeNum, matchFeeInfo.feeDenom);
+            }
+            if (matchFeeInfo.matcherFeeNum > 0 && matchFeeInfo.matcherFeeDenom > 0) {
+                anotherTotalFeeAmount += mulDivFloor(getAmount, matchFeeInfo.matcherFeeNum, matchFeeInfo.matcherFeeDenom);
+            }
+            debug.print(anotherTotalFeeAmount);
+            debug.print(getAmount);
+            debug.print(anotherLower);
+            if (mulDivFloor(getAmount - anotherTotalFeeAmount, ton("1"), anotherGetAmount) < lower) {
+                throw 409;
+            }
+            debug.print(getAmount);
+            debug.print(anotherGetAmount);
 
             // send success match to order
-            var getAmount = mulDivFloor(anotherGetAmount, ton("1"), matchExchangeInfo.priceRate);
             storage.sendSuccessMatch(
                 in.valueCoins / 2,
                 in.senderAddress,
@@ -314,13 +345,13 @@ fun onInternalMessage(in: InMessage) {
                 exchangeInfo.to,
                 true,
                 storage.owner,
-                storage.owner,
+                null,
                 SEND_MODE_CARRY_ALL_BALANCE
             );
             return;
         }
         InitOrder => {
-            storage.verifySender(in.senderAddress, null, null, null, null, 1);
+            storage.verifySender(in.senderAddress, null, null, null, null, 1); // type 1 = vault
             // assert(in.senderAddress == storage.vault) throw 403;
             assert(in.valueCoins >= GAS_STORAGE) throw 422;
             var exchangeInfo = storage.exchangeInfo.load();

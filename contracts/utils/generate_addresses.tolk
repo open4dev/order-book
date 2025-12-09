@@ -32,19 +32,19 @@ fun generateOrder(
     return order;
 }
 
-fun generateMatcherFeeCollector(vault: address, matcher: address, matcherFeeCollectorCode: cell): AutoDeployAddress {
-    var matcherFeeCollectorData: cell = beginCell()
+fun generateFeeCollector(vault: address, matcher: address, feeCollectorCode: cell): AutoDeployAddress {
+    var feeCollectorData: cell = beginCell()
         .storeAddress(vault)
         .storeAddress(matcher)
         .storeCoins(0)
     .endCell();
 
-    var matcherFeeCollector = AutoDeployAddress {
+    var feeCollector = AutoDeployAddress {
         stateInit: {
-            code: matcherFeeCollectorCode,
-            data: matcherFeeCollectorData
+            code: feeCollectorCode,
+            data: feeCollectorData
         }
     };
 
-    return matcherFeeCollector;
+    return feeCollector;
 }
