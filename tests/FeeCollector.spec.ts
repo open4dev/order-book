@@ -75,7 +75,6 @@ describe('FeeCollector', () => {
         const dataAfter = await feeCollector.getData();
         expect(dataAfter.amount).toEqual(toNano(100));
         const resAddFee2 = await feeCollector.sendAddFee(deployer.getSender(), toNano(0.1), toNano(200));
-        printTransactionFees(resAddFee2.transactions)
         expect(resAddFee2.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
