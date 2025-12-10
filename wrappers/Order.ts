@@ -118,11 +118,28 @@ export class Order implements Contract {
         });
     }
 
-    async sendInit(provider: ContractProvider, via: Sender, value: bigint) {
+    async sendInit(provider: ContractProvider, via: Sender, value: bigint, params: {
+        amount: bigint,
+        priceRate: bigint,
+        slippage: bigint,
+        feeInfo: FeeInfo,
+    }) {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().endCell(),
+            body: beginCell()
+            .storeUint(0x2d0e1e1b, 32)
+            .storeCoins(params.amount)
+            .storeCoins(params.priceRate)
+            .storeUint(params.slippage, 30)
+            .storeRef(beginCell()
+                .storeAddress(params.feeInfo.provider)
+                .storeUint(params.feeInfo.feeNum, 14)
+                .storeUint(params.feeInfo.feeDenom, 14)
+                .storeUint(params.feeInfo.matcherFeeNum, 14)
+                .storeUint(params.feeInfo.matcherFeeDenom, 14)
+            .endCell())
+            .endCell(),
         });
     }
 
