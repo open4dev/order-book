@@ -146,7 +146,7 @@ describe('VaultFactory', () => {
 
         fromJettonWallet = getJettonWalletWrapper(blockchain, resultUser1FromJettonWalletMint, fromJettonMinter.address)
 
-        const resultCreateVaultFrom = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(0.0065 + 0.0019 + 0.01), jettonWalletCodeCell, fromJettonMinter.address)
+        const resultCreateVaultFrom = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(0.0075 + 0.0019 + 0.01), jettonWalletCodeCell, fromJettonMinter.address)
 
         // console.log("fromVault TRS")
 
@@ -1060,12 +1060,16 @@ describe('VaultFactory', () => {
     it("Success Change Owner", async () => {
         const ownerBefore = await vaultFactory.getOwner();
         expect(ownerBefore.toRawString()).toEqual(deployer.address.toRawString());
-        const res = await vaultFactory.sendChangeOwner(deployer.getSender(), toNano(0.1), user1.address)
+        const balanceBefore = (await blockchain.getContract(vaultFactory.address)).balance
+        const res = await vaultFactory.sendChangeOwner(deployer.getSender(), toNano(0.0009), user1.address)
         expect(res.transactions).toHaveTransaction({
             from: deployer.address,
             to: vaultFactory.address,
             success: true,
         });
+        printTransactionFees(res.transactions)
+        const balanceAfter = (await blockchain.getContract(vaultFactory.address)).balance
+        expect(balanceAfter).toBeGreaterThan(balanceBefore)
         const ownerAfter = await vaultFactory.getOwner();
         expect(ownerAfter.toRawString()).toEqual(user1.address.toRawString());
         expect(ownerAfter.toRawString()).not.toEqual(ownerBefore.toRawString());
@@ -1082,7 +1086,7 @@ describe('VaultFactory', () => {
     })
 
     it("Error Change Owner not enough gas", async () => {
-        const res = await vaultFactory.sendChangeOwner(deployer.getSender(), toNano(0.001), user1.address)
+        const res = await vaultFactory.sendChangeOwner(deployer.getSender(), toNano(0.0008), user1.address)
         expect(res.transactions).toHaveTransaction({
             from: deployer.address,
             to: vaultFactory.address,
@@ -1092,12 +1096,15 @@ describe('VaultFactory', () => {
     })
 
     it("Success Create Vault with jetton", async () => {
-        const res = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(0.1), jettonWalletCodeCell, fromJettonMinter.address)
+        const res = await vaultFactory.sendCreateVault(deployer.getSender(), toNano(0.075 + 0.001 + 0.01), jettonWalletCodeCell, fromJettonMinter.address)
+        console.log((await blockchain.getContract(vaultFactory.address)).balance)
+        printTransactionFees(res.transactions)
         expect(res.transactions).toHaveTransaction({
             from: deployer.address,
             to: vaultFactory.address,
             success: true,
         });
+        console.log((await blockchain.getContract(vaultFactory.address)).balance)
     })
 
     it("Success Create Vault with ton", async () => {

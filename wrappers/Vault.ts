@@ -44,7 +44,7 @@ export function vaultConfigToCell(config: VaultConfig): Cell {
                 .storeMaybeRef(config.codesInfo.jettonWalletCode ? config.codesInfo.jettonWalletCode : undefined)
                 .storeRef(config.codesInfo.orderCode)
                 .storeRef(config.codesInfo.feeCollectorCode)
-                .endCell()
+            .endCell()
             )
         .storeMaybeRef(config.fromJetton ? beginCell().storeAddress(config.fromJetton.jettonMinter).endCell() : undefined)
         .storeUint(config.randomHash, 256)

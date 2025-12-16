@@ -1,7 +1,6 @@
 import "utils/generate_addresses"
 import "utils/fees"
 import "utils/jetton_utils"
-import "utils/op"
 
 struct JettonInfo {
     jettonMinter: address
@@ -153,7 +152,7 @@ fun onInternalMessage(in: InMessage) {
                     .storeUint(0xec9a92f6, 32)
                 .endCell();
 
-                var body = beginCell().storeUint(OP_EXCHANGE, 32).endCell();
+                var body = beginCell().storeUint(0x15082c35, 32).endCell();
 
                 reserveToncoinsOnBalance(transferAmount + in.valueCoins, 1);
 

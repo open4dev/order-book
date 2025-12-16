@@ -1,7 +1,6 @@
 import "utils/generate_addresses"
 import "utils/fees"
 import "utils/jetton_utils"
-import "utils/op"
 
 struct JettonInfo {
     jettonMinter: address
@@ -91,6 +90,8 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         VaultJettonTransfer => {
+            debug.print("VaultJettonTransfer");
+            debug.print(msg.amountTransfer);
             assert(in.valueCoins >= GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw 422;
             val codesInfo = storage.codesInfo.load();
             var addresses = msg.addresses.load();
@@ -155,7 +156,7 @@ fun onInternalMessage(in: InMessage) {
                     .storeUint(0xec9a92f6, 32)
                 .endCell();
 
-                var body = beginCell().storeUint(OP_EXCHANGE, 32).endCell();
+                var body = beginCell().storeUint(0x15082c35, 32).endCell();
 
                 reserveToncoinsOnBalance(transferAmount + in.valueCoins, 1);
 
@@ -174,7 +175,7 @@ fun onInternalMessage(in: InMessage) {
                     simpleMessage(addresses.anotherOwnerOrder, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
                 }
             }
-            storage.amount -= transferAmount;
+            storage.amount -= msg.amountTransfer;
             storage.save();
             return;
         }

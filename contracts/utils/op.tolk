@@ -1,1 +1,0 @@
-const OP_EXCHANGE = 0x47ff7e25;

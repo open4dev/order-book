@@ -58,19 +58,20 @@ fun onInternalMessage(in: InMessage) {
         CreateVault => {
             assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw 422;
 
+            reserveToncoinsOnBalance(0, 4);
+
             var codesInfo = storage.codesInfo.load();
             var autoDeployAddress = prepareInitVault(codesInfo.orderCode, codesInfo.vaultCode, codesInfo.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
             
             var reply = createMessage({
                 bounce: false,
                 dest: autoDeployAddress,
-                value: GAS_VAULT_INIT + GAS_STORAGE,
+                value: 0,
                 body: beginCell()
                     .storeUint(0x2717c4a2, 32)
                 .endCell()
-                
             });
-            reply.send(SEND_MODE_PAY_FEES_SEPARATELY);
+            reply.send(SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             return;
         }
         ChangeOwner => {

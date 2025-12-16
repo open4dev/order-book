@@ -260,9 +260,6 @@ fun onInternalMessage(in: InMessage) {
             if (feeInfo.matcherFeeNum > 0 && feeInfo.matcherFeeDenom > 0) {
                 totalFeeAmount += mulDivFloor(anotherGetAmount, feeInfo.matcherFeeNum, feeInfo.matcherFeeDenom);
             }
-            debug.print(totalFeeAmount);
-            debug.print(anotherGetAmount);
-            debug.print(lower);
             if (mulDivFloor(anotherGetAmount - totalFeeAmount, ton("1"), getAmount) < anotherLower) {
                 throw 408;
             }
@@ -273,14 +270,9 @@ fun onInternalMessage(in: InMessage) {
             if (matchFeeInfo.matcherFeeNum > 0 && matchFeeInfo.matcherFeeDenom > 0) {
                 anotherTotalFeeAmount += mulDivFloor(getAmount, matchFeeInfo.matcherFeeNum, matchFeeInfo.matcherFeeDenom);
             }
-            debug.print(anotherTotalFeeAmount);
-            debug.print(getAmount);
-            debug.print(anotherLower);
             if (mulDivFloor(getAmount - anotherTotalFeeAmount, ton("1"), anotherGetAmount) < lower) {
                 throw 409;
             }
-            debug.print(getAmount);
-            debug.print(anotherGetAmount);
 
             // send success match to order
             storage.sendSuccessMatch(
