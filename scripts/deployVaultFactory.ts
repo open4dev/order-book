@@ -7,7 +7,7 @@ export async function run(provider: NetworkProvider) {
         owner: provider.sender().address!,
         vaultCode: await compile('Vault3'),
         orderCode: await compile('Order'),
-        matcherFeeCollectorCode: await compile('MatcherFeeCollector'),
+        feeCollectorCode: await compile('FeeCollector'),
         comissionInfo: {
             comission_num: 5,
             comission_denom: 1000,

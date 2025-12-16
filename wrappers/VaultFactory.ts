@@ -4,7 +4,7 @@ export type VaultFactoryConfig = {
     owner: Address;
     vaultCode: Cell;
     orderCode: Cell;
-    matcherFeeCollectorCode: Cell;
+    feeCollectorCode: Cell;
     comissionInfo: {
         comission_num: number;
         comission_denom: number;
@@ -22,7 +22,7 @@ export function vaultFactoryConfigToCell(config: VaultFactoryConfig): Cell {
         beginCell()
         .storeRef(config.vaultCode)
         .storeRef(config.orderCode)
-        .storeRef(config.matcherFeeCollectorCode)
+        .storeRef(config.feeCollectorCode)
         .endCell()
     )
     .storeRef(
@@ -86,36 +86,6 @@ export class VaultFactory implements Contract {
         });
     }
 
-    async sendChangeCommission(provider: ContractProvider, via: Sender, value: bigint, newCommission: {
-        comission_num: number;
-        comission_denom: number;
-    }) {
-        await provider.internal(via, {
-            value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-            .storeUint(0x4e86ed8b, 32)
-            .storeRef(
-                beginCell()
-                .storeUint(newCommission.comission_num, 14)
-                .storeUint(newCommission.comission_denom, 14)
-                .endCell()
-            )
-            .endCell(),
-        });
-    }
-
-    async sendWithDraw(provider: ContractProvider, via: Sender, value: bigint, vaultAddress: Address) {
-        await provider.internal(via, {
-            value,
-            sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-            .storeUint(0xec9a92f6, 32)
-            .storeAddress(vaultAddress)
-            .endCell(),
-        });
-    }
-
     async getOwner(provider: ContractProvider) {
         const { stack } = await provider.get('getOwner', []);
         return stack.readAddress();
@@ -126,6 +96,8 @@ export class VaultFactory implements Contract {
         return {
             comission_num: stack.readNumber(),
             comission_denom: stack.readNumber(),
+            comission_num_matcher: stack.readNumber(),
+            comission_denom_matcher: stack.readNumber(),
         };
     }
 }

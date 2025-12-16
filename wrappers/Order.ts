@@ -1,22 +1,100 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
 
-export type OrderConfig = {};
 
-export function orderConfigToCell(config: OrderConfig): Cell {
-    return beginCell().endCell();
-}
+// struct JettonInfo {
+//     jettonMinter: address
+// }
 
-export type OrderData = {
-    owner: Address;
-    vault: Address;
-    exchangeInfo: ExchangeInfo;
-}
+// struct ExchangeInfo {
+//     from: Cell<JettonInfo>?
+//     to: Cell<JettonInfo>?
+//     amount: coins
+//     priceRate: coins
+//     slippage: uint30
+// }
+
+// struct FeeInfo {
+//     provider: address
+//     feeNum: uint14
+//     feeDenom: uint14
+//     matcherFeeNum: uint14
+//     matcherFeeDenom: uint14
+// }
+
+
+// struct Storage {
+//     owner: address
+//     vault: address
+//     feeInfo: Cell<FeeInfo>?
+//     exchangeInfo: Cell<ExchangeInfo>
+//     createdAt: uint32
+// }
+
+export type JettonInfo = {
+    jettonMinter: Address;
+};
 
 export type ExchangeInfo = {
-    fromJettonMinter: Address;
-    toJettonMinter: Address;
+    from: JettonInfo | null;
+    to: JettonInfo | null;
     amount: bigint;
     priceRate: bigint;
+    slippage: bigint;
+};
+
+export type FeeInfo = {
+    provider: Address;
+    feeNum: bigint;
+    feeDenom: bigint;
+    matcherFeeNum: bigint;
+    matcherFeeDenom: bigint;
+};
+
+export type Storage = {
+    owner: Address;
+    vault: Address;
+    feeInfo: FeeInfo | null;
+    exchangeInfo: ExchangeInfo;
+    createdAt: bigint;
+};
+
+export type OrderConfig = {
+    owner: Address;
+    vault: Address;
+    feeInfo: FeeInfo | null;
+    exchangeInfo: ExchangeInfo;
+    createdAt: bigint;
+};
+
+export function orderConfigToCell(config: OrderConfig): Cell {
+    const fromJettonInfoCell = config.exchangeInfo.from ? beginCell().storeAddress(config.exchangeInfo.from!.jettonMinter).endCell() : null;
+    const toJettonInfoCell = config.exchangeInfo.to ? beginCell().storeAddress(config.exchangeInfo.to!.jettonMinter).endCell() : null;
+
+    const exchangeInfoCell = beginCell()
+        .storeMaybeRef(fromJettonInfoCell)
+        .storeMaybeRef(toJettonInfoCell)
+        .storeCoins(config.exchangeInfo.amount)
+        .storeCoins(config.exchangeInfo.priceRate)
+        .storeUint(config.exchangeInfo.slippage, 30)
+        .endCell();
+
+    const feeInfoCell = config.feeInfo ? beginCell()
+        .storeAddress(config.feeInfo!.provider)
+        .storeUint(config.feeInfo!.feeNum, 14)
+        .storeUint(config.feeInfo!.feeDenom, 14)
+        .storeUint(config.feeInfo!.matcherFeeNum, 14)
+        .storeUint(config.feeInfo!.matcherFeeDenom, 14)
+        .endCell() : null;
+    
+
+
+    return beginCell()
+        .storeAddress(config.owner)
+        .storeAddress(config.vault)
+        .storeMaybeRef(feeInfoCell)
+        .storeRef(exchangeInfoCell)
+        .storeUint(config.createdAt, 32)
+        .endCell();
 }
 
 export class Order implements Contract {
@@ -37,6 +115,31 @@ export class Order implements Contract {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell().endCell(),
+        });
+    }
+
+    async sendInit(provider: ContractProvider, via: Sender, value: bigint, params: {
+        amount: bigint,
+        priceRate: bigint,
+        slippage: bigint,
+        feeInfo: FeeInfo,
+    }) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell()
+            .storeUint(0x2d0e1e1b, 32)
+            .storeCoins(params.amount)
+            .storeCoins(params.priceRate)
+            .storeUint(params.slippage, 30)
+            .storeRef(beginCell()
+                .storeAddress(params.feeInfo.provider)
+                .storeUint(params.feeInfo.feeNum, 14)
+                .storeUint(params.feeInfo.feeDenom, 14)
+                .storeUint(params.feeInfo.matcherFeeNum, 14)
+                .storeUint(params.feeInfo.matcherFeeDenom, 14)
+            .endCell())
+            .endCell(),
         });
     }
 

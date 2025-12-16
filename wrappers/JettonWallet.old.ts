@@ -125,25 +125,11 @@ export class JettonWallet implements Contract {
         toJettonMinter: Address | null,
         customPayload?: Cell | null,
         forwardTonAmount: bigint,
-        providerFee: Address,
-        feeNum: number, // uint14
-        feeDenom: number, // uint14
-        matcherFeeNum: number, // uint14
-        matcherFeeDenom: number, // uint14
     }) {
         const forwardPayload = beginCell()
             .storeCoins(params.priceRate)
             .storeMaybeRef(params.toJettonMinter ? beginCell().storeAddress(params.toJettonMinter).endCell() : null)
             .storeUint(params.slippage, 30)
-            .storeRef(
-                beginCell()
-                    .storeAddress(params.providerFee)
-                    .storeUint(params.feeNum, 14)
-                    .storeUint(params.feeDenom, 14)
-                    .storeUint(params.matcherFeeNum, 14)
-                    .storeUint(params.matcherFeeDenom, 14)
-                .endCell()
-            )
             .endCell();
 
         await this.sendTransfer(
@@ -156,26 +142,6 @@ export class JettonWallet implements Contract {
             params.customPayload ?? null,
             params.forwardTonAmount,
             forwardPayload
-        );
-    }
-
-    async sendCreateOrderWithoutForwardPayload(provider: ContractProvider, via: Sender, value: bigint, params: {
-        jettonAmount: bigint,
-        vault: Address,
-        owner: Address,
-        customPayload?: Cell | null,
-        forwardTonAmount: bigint,
-    }) {
-        await this.sendTransfer(
-            provider,
-            via,
-            value,
-            params.jettonAmount,
-            params.vault,
-            params.owner,
-            params.customPayload ?? null,
-            params.forwardTonAmount,
-            null
         );
     }
     /*

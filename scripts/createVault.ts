@@ -22,7 +22,7 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: NOT
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:6ad7ae23ba4487ed37ec34008ebe42e01c47685b50f3761a34feaaaf5e54af67")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:8f936daaf897930ff3fae2809e21a411b1b2b2bb5347d51516c048b801cf9d12")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     toNano(0.0065 + 0.0019 + 0.01),
@@ -31,7 +31,7 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: BUILD
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:6ad7ae23ba4487ed37ec34008ebe42e01c47685b50f3761a34feaaaf5e54af67")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:8f936daaf897930ff3fae2809e21a411b1b2b2bb5347d51516c048b801cf9d12")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     toNano(0.0065 + 0.0019 + 0.01),
@@ -40,17 +40,17 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: USDT
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:6ad7ae23ba4487ed37ec34008ebe42e01c47685b50f3761a34feaaaf5e54af67")));
-    // await vaultFactory.sendCreateVault(
-    //     provider.sender(),
-    //     toNano(0.0065 + 0.0019 + 0.01),
-    //     Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
-    //     Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
-    // )
+    const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:8f936daaf897930ff3fae2809e21a411b1b2b2bb5347d51516c048b801cf9d12")));
+    await vaultFactory.sendCreateVault(
+        provider.sender(),
+        toNano(0.0065 + 0.0019 + 0.01),
+        Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
+        Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
+    )
 
     // sleep(10000);
     // JETTON: TON
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:4ee0d01491a9cd0c99a0b780e4402854102f49fbed609c04aa641bb4031b495c")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:e7ee1baef476757ecfb2057bb6075eb0e1d37a548c083e88d474dc0de0e09f30")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     toNano(0.0065 + 0.0019 + 0.01),

@@ -4,6 +4,7 @@ build
 dist
 .DS_Store
 package.ts
+contracts/factory_up.tolk
 
 # VS Code
 .vscode/*
@@ -21,3 +22,5 @@ Session.vim
 .nvim/
 .emacs/
 .helix/
+
+TEST_CASES.md
