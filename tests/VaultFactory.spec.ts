@@ -591,7 +591,7 @@ describe('VaultFactory', () => {
     //     console.log("Before toJettonWallet", await toJettonWallet.getWalletData())
     //     const resultCreateOrder = await fromJettonWallet.sendCreateOrder(
     //         user1.getSender(),
-    //         toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+    //         toNano(0.01 + 0.0035 + 0.007 + 0.02),
     //         {
     //             jettonAmount: toNano(9),
     //             vault: fromVault.address,
@@ -686,7 +686,7 @@ describe('VaultFactory', () => {
     //     )
     //     const resultCreateToOrder = await toJettonWallet.sendCreateOrder(
     //         user2.getSender(),
-    //         toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+    //         toNano(0.01 + 0.0035 + 0.007 + 0.02),
     //         {
     //             jettonAmount: toNano(30),
     //             vault: toVault.address,
@@ -744,7 +744,7 @@ describe('VaultFactory', () => {
     //     )
     //     const resultCreateToOrder = await toJettonWallet.sendCreateOrder(
     //         user2.getSender(),
-    //         toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+    //         toNano(0.01 + 0.0035 + 0.007 + 0.02),
     //         {
     //             jettonAmount: toNano(30),
     //             vault: toVault.address,
@@ -1224,7 +1224,7 @@ describe('VaultFactory', () => {
         });
         const vault2 = getVaultWrapper(blockchain, res2)
 
-        const resCreateOrderFrom = await vault1.sendCreateOrder(user1.getSender(), toNano(15.02), {
+        const resCreateOrderFrom = await vault1.sendCreateOrder(user1.getSender(), toNano(15 + 0.01 + 0.0035 + 0.005), {
             amount: toNano(15),
             priceRate: toNano(0.66),
             slippage: toNano(0.02),
@@ -1239,14 +1239,14 @@ describe('VaultFactory', () => {
 
         const order1 = getOrderWrapper(blockchain, resCreateOrderFrom, vault1.address)
 
-        const resCreateOrderTo = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.1), {
+        const resCreateOrderTo = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.02 + 0.01 + 0.0035 + 0.007), {
             jettonAmount: toNano(10),
             vault: vault2.address,
             owner: user2.address,
             priceRate: toNano(1.5),
             slippage: toNano(0.02),
             toJettonMinter: null,
-            forwardTonAmount: toNano(0.05),
+            forwardTonAmount: toNano(0.01 + 0.0035 + 0.007),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,

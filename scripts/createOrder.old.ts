@@ -21,7 +21,7 @@ export async function run(provider: NetworkProvider) {
 
     await jettonWalletFrom.sendCreateOrder(
         provider.sender(),
-        toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+        toNano(0.01 + 0.0035 + 0.007 + 0.02),
         {
             jettonAmount: toNano(0.01),
             vault: Address.parse("0:d81c73f731f3df114d73eb20aee0f0197b4dc52019daf9cfb1102b1a89d91cac"),
@@ -35,7 +35,7 @@ export async function run(provider: NetworkProvider) {
 
     // await jettonWalletTo.sendCreateOrder(
     //     provider.sender(),
-    //     toNano(0.02 + 0.002 + 0.01 + 0.007 + 0.005),
+    //     toNano(0.01 + 0.0035 + 0.007 + 0.02),
     //     {
     //         jettonAmount: toNano(0.1),
     //         vault: Address.parse("0:4e6205887195257dc8c2822051f8ef26f5f2113bb111e37e6452ebb01c98472f"),

@@ -90,8 +90,6 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         VaultJettonTransfer => {
-            debug.print("VaultJettonTransfer");
-            debug.print(msg.amountTransfer);
             assert(in.valueCoins >= GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw 422;
             val codesInfo = storage.codesInfo.load();
             var addresses = msg.addresses.load();
