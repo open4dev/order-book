@@ -1,4 +1,4 @@
-import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
+import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { Cell, toNano } from '@ton/core';
 import { Order } from '../wrappers/Order';
 import '@ton/test-utils';
@@ -228,47 +228,41 @@ describe('Order', () => {
 
     it("Match Orders -> Bounce", async() => {
         const resInitVault1 = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault1.transactions, mapOpcode)
         const resInitVault2 = await vaultJetton2.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault2.transactions, mapOpcode)
         const resMint1 = await jettonMinter1.sendMint(deployer.getSender(), deployer.address, toNano(1), null, null, null, undefined, undefined);
-        printTransactionFees(resMint1.transactions, mapOpcode)
         const jettonWallet1 = getJettonWalletWrapper(blockchain, resMint1, jettonMinter1.address);
         const resMint2 = await jettonMinter2.sendMint(deployer.getSender(), deployer.address, toNano(100), null, null, null, undefined, undefined);
-        printTransactionFees(resMint2.transactions, mapOpcode)
         const jettonWallet2 = getJettonWalletWrapper(blockchain, resMint2, jettonMinter2.address);
 
-        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(0.1), {
+        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(1), {
             jettonAmount: toNano(1),
             vault: vaultJetton1.address,
             owner: deployer.address,
             priceRate: toNano(2),
             slippage: toNano(0.05),
             toJettonMinter: jettonMinter2.address,
-            forwardTonAmount: toNano(0.05),
+            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,
             matcherFeeNum: 1,
             matcherFeeDenom: 1000,
         });
-        printTransactionFees(resCreateOrder1.transactions, mapOpcode)
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultJetton1.address);
-        const resCreateOrder2 = await jettonWallet2.sendCreateOrder(deployer.getSender(), toNano(0.1), {
+        const resCreateOrder2 = await jettonWallet2.sendCreateOrder(deployer.getSender(), toNano(1), {
             jettonAmount: toNano(1),    
             vault: vaultJetton2.address,
             owner: deployer.address,
             priceRate: toNano(1),
             slippage: toNano(0.05),
             toJettonMinter: jettonMinter1.address,
-            forwardTonAmount: toNano(0.05),
+            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,
             matcherFeeNum: 1,
             matcherFeeDenom: 1000,
         });
-        printTransactionFees(resCreateOrder2.transactions, mapOpcode)
         const order2 = getOrderWrapper(blockchain, resCreateOrder2, vaultJetton2.address);
 
         const res = await order1.sendMatchOrder(deployer.getSender(), toNano(1), {
@@ -278,7 +272,6 @@ describe('Order', () => {
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(1), // 1 jetton
         });
-        printTransactionFees(res.transactions, mapOpcode)
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: order2.address,
@@ -299,53 +292,49 @@ describe('Order', () => {
         const resInitVault1 = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
 
         const resMint1 = await jettonMinter1.sendMint(deployer.getSender(), deployer.address, toNano(1), null, null, null, undefined, undefined);
-        printTransactionFees(resMint1.transactions, mapOpcode)
         const jettonWallet1 = getJettonWalletWrapper(blockchain, resMint1, jettonMinter1.address);
-        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(0.01 + 0.0035 + 0.007 + 0.02), {
+        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(1), {
             jettonAmount: toNano(1),
             vault: vaultJetton1.address,
             owner: deployer.address,
             priceRate: toNano(2),
             slippage: toNano(0.05),
             toJettonMinter: jettonMinter2.address,
-            forwardTonAmount: toNano(0.01 + 0.0035 + 0.007),
+            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,
             matcherFeeNum: 1,
             matcherFeeDenom: 1000,
         })
-        printTransactionFees(resCreateOrder1.transactions, mapOpcode)
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultJetton1.address);
+        expect((await order1.getData()).exchangeInfo.amount).toEqual(toNano(1));
         const res = await order1.sendCloseOrder(deployer.getSender(), toNano(0.1));
-        printTransactionFees(res.transactions, mapOpcode)
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: vaultJetton1.address,
             success: true,
         })
+        const accountState = (await blockchain.getContract(order1.address)).accountState;
+        expect(accountState).toBeUndefined();
     })
 
     it("Match Orders jetton -> jetton", async () => {
         const resInitVault1 = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault1.transactions, mapOpcode)
         const resInitVault2 = await vaultJetton2.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault2.transactions, mapOpcode)
         const resMint1 = await jettonMinter1.sendMint(deployer.getSender(), deployer.address, toNano(1000), null, null, null, undefined, undefined);
-        printTransactionFees(resMint1.transactions, mapOpcode)
         const jettonWallet1 = getJettonWalletWrapper(blockchain, resMint1, jettonMinter1.address);
         const resMint2 = await jettonMinter2.sendMint(deployer.getSender(), deployer.address, toNano(1000), null, null, null, undefined, undefined);
-        printTransactionFees(resMint2.transactions, mapOpcode)
         const jettonWallet2 = getJettonWalletWrapper(blockchain, resMint2, jettonMinter2.address);
 
-        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(0.01 + 0.0035 + 0.007 + 0.02), {
+        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(1), {
             jettonAmount: toNano(100),
             vault: vaultJetton1.address,
             owner: deployer.address,
             priceRate: toNano(0.1),
             slippage: toNano(0.02),
             toJettonMinter: jettonMinter2.address,
-            forwardTonAmount: toNano(0.01 + 0.0035 + 0.007),
+            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,
@@ -354,14 +343,14 @@ describe('Order', () => {
         })
 
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultJetton1.address);
-        const resCreateOrder2 = await jettonWallet2.sendCreateOrder(deployer.getSender(), toNano(0.01 + 0.0035 + 0.007 + 0.02), {
+        const resCreateOrder2 = await jettonWallet2.sendCreateOrder(deployer.getSender(), toNano(1), {
             jettonAmount: toNano(10),
             vault: vaultJetton2.address,
             owner: deployer.address,
             priceRate: toNano(10),
             slippage: toNano(0.02),
             toJettonMinter: jettonMinter1.address,
-            forwardTonAmount: toNano(0.01 + 0.0035 + 0.007),
+            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,
@@ -377,7 +366,6 @@ describe('Order', () => {
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(100),
         });
-        printTransactionFees(res.transactions, mapOpcode)
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: vaultJetton1.address,
@@ -393,21 +381,18 @@ describe('Order', () => {
 
     it("Match Orders jetton -> ton", async () => {
         const resInitVault1 = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault1.transactions, mapOpcode)
         const resInitVault2 = await vaultTon.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault2.transactions, mapOpcode)
         const resMint1 = await jettonMinter1.sendMint(deployer.getSender(), deployer.address, toNano(1000), null, null, null, undefined, undefined);
-        printTransactionFees(resMint1.transactions, mapOpcode)
         const jettonWallet1 = getJettonWalletWrapper(blockchain, resMint1, jettonMinter1.address);
 
-        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(0.01 + 0.0035 + 0.007 + 0.02), {
+        const resCreateOrder1 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(1), {
             jettonAmount: toNano(100),
             vault: vaultJetton1.address,
             owner: deployer.address,
             priceRate: toNano(0.1),
             slippage: toNano(0.02),
             toJettonMinter: null,
-            forwardTonAmount: toNano(0.01 + 0.0035 + 0.007),
+            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,
@@ -416,7 +401,7 @@ describe('Order', () => {
         })
 
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultJetton1.address);
-        const resCreateOrder2 = await vaultTon.sendCreateOrder(deployer.getSender(), toNano(10 + 0.01 + 0.0035 + 0.005), {
+        const resCreateOrder2 = await vaultTon.sendCreateOrder(deployer.getSender(), toNano(10 + 0.01 + 0.00186 + 0.006786 + 0.002744 + 0.006), {
             amount: toNano(10),
             priceRate: toNano(10),
             slippage: toNano(0.05),
@@ -436,7 +421,6 @@ describe('Order', () => {
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(100),
         });
-        printTransactionFees(res.transactions, mapOpcode)
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: vaultJetton1.address,
@@ -452,15 +436,12 @@ describe('Order', () => {
 
     it("Match Orders ton -> jetton", async () => {
         const resInitVault1 = await vaultTon.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault1.transactions, mapOpcode)
         const resInitVault2 = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), toNano(0.05));
-        printTransactionFees(resInitVault2.transactions, mapOpcode)
         const resMint1 = await jettonMinter1.sendMint(deployer.getSender(), deployer.address, toNano(1000), null, null, null, undefined, undefined);
-        printTransactionFees(resMint1.transactions, mapOpcode)
         const jettonWallet1 = getJettonWalletWrapper(blockchain, resMint1, jettonMinter1.address);
 
         // Первый ордер: TON -> jetton
-        const resCreateOrder1 = await vaultTon.sendCreateOrder(deployer.getSender(), toNano(10 + 0.01 + 0.0035 + 0.005), {
+        const resCreateOrder1 = await vaultTon.sendCreateOrder(deployer.getSender(), toNano(10 + 0.01 + 0.00186 + 0.006786 + 0.002744 + 0.006), {
             amount: toNano(10),
             priceRate: toNano(10),
             slippage: toNano(0.05),
@@ -474,14 +455,14 @@ describe('Order', () => {
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultTon.address);
 
         // Второй ордер: jetton -> TON (наоборот)
-        const resCreateOrder2 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(0.01 + 0.0035 + 0.007 + 0.02), {
+        const resCreateOrder2 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(1), {
             jettonAmount: toNano(100),
             vault: vaultJetton1.address,
             owner: deployer.address,
             priceRate: toNano(0.1),
             slippage: toNano(0.02),
             toJettonMinter: null,
-            forwardTonAmount: toNano(0.01 + 0.0035 + 0.007),
+            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
             feeNum: 5,
             feeDenom: 1000,
@@ -497,7 +478,6 @@ describe('Order', () => {
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
         });
-        printTransactionFees(res.transactions, mapOpcode)
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: vaultTon.address,

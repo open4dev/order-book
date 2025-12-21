@@ -48,6 +48,7 @@ export function vaultConfigToCell(config: VaultConfig): Cell {
             )
         .storeMaybeRef(config.fromJetton ? beginCell().storeAddress(config.fromJetton.jettonMinter).endCell() : undefined)
         .storeUint(config.randomHash, 256)
+        .storeCoins(config.amount)
         .endCell();
 }
 

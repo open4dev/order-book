@@ -344,7 +344,7 @@ fun onInternalMessage(in: InMessage) {
                 true,
                 storage.owner,
                 null,
-                SEND_MODE_CARRY_ALL_BALANCE
+                SEND_MODE_CARRY_ALL_BALANCE + SEND_MODE_DESTROY
             );
             return;
         }

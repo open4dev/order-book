@@ -209,18 +209,20 @@ fun onInternalMessage(in: InMessage) {
             var feeCollectorAddress = feeCollector.calculateAddress();
             assert(feeCollectorAddress == in.senderAddress) throw 403;
             if (storage.fromJetton == null) {
+                reserveToncoinsOnBalance(storage.amount - msg.amount + GAS_STORAGE, 0);
                 val body = beginCell()
                     .storeUint(0xee83652a, 32)
                 .endCell();
-                simpleMessage(msg.feeAddress, msg.amount, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+                simpleMessage(msg.feeAddress, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
             } else {
+                reserveToncoinsOnBalance(GAS_STORAGE, 0);
                 val codesInfo = storage.codesInfo.load();
                 val jettonWallet = calculateJettonWallet(
                     codesInfo.jettonWalletCode!,
                     storage.fromJetton!.load().jettonMinter,
                     contract.getAddress()
                 );
-                sendJettonTransfer(0, jettonWallet, msg.amount, msg.feeAddress, msg.feeAddress, 0, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+                sendJettonTransfer(0, jettonWallet, msg.amount, msg.feeAddress, msg.feeAddress, 0, SEND_MODE_CARRY_ALL_BALANCE);
             }
             storage.amount -= msg.amount;
             storage.save();
