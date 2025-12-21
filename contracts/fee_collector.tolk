@@ -26,7 +26,7 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         WithDraw => {
-            assert(in.valueCoins >= GAS_JETTON_WALLET_TRANSFER) throw 422;
+            assert(in.valueCoins >= GAS_FEE_COLLECTOR_WITHDRAW + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw 422;
             assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
 
             var msg = createMessage({

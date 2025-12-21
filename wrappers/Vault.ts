@@ -48,7 +48,6 @@ export function vaultConfigToCell(config: VaultConfig): Cell {
             )
         .storeMaybeRef(config.fromJetton ? beginCell().storeAddress(config.fromJetton.jettonMinter).endCell() : undefined)
         .storeUint(config.randomHash, 256)
-        .storeCoins(config.amount)
         .endCell();
 }
 
@@ -133,10 +132,10 @@ export class Vault implements Contract {
     async getData(provider: ContractProvider) {
         const { stack } = await provider.get('getData', []);
         return {
-            amount: stack.readBigNumber(),
             jettonMaster: stack.readCellOpt(),
             randomHash_hex: stack.readBigNumber().toString(16),
             vaultFactory: stack.readAddress(),
+            amount: stack.readBigNumber(),
         };
     }
 

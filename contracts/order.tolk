@@ -236,16 +236,14 @@ fun onInternalMessage(in: InMessage) {
         }
         InternalMatchOrder => {
             var exchangeInfo = storage.exchangeInfo.load();
+            storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.createdAt, 0);
             var matchExchangeInfo = msg.matchExchangeInfo.load();
             var matchFeeInfo = matchExchangeInfo.feeInfo.load();
             var feeInfo = storage.feeInfo!.load();
             val (compareSlippage, lower) = compareWithSlippage(matchExchangeInfo.priceRate, exchangeInfo.priceRate, exchangeInfo.slippage);
             val (anotherCompareSlippage, anotherLower) = compareWithSlippage(exchangeInfo.priceRate, matchExchangeInfo.priceRate, matchExchangeInfo.slippage);
             assert ((exchangeInfo.amount > 0) && (compareSlippage == 0) && (anotherCompareSlippage == 0)) throw 407;
-            reserveToncoinsOnBalance(GAS_STORAGE, 0);
-            storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.createdAt, 0);
             
-            // anotherGetAmount = matchExchangeInfo.amount * matchExchangeInfo.priceRate / 1e9
             var anotherGetAmount = mulDivFloor(matchExchangeInfo.amount, matchExchangeInfo.priceRate, ton("1"));
             if (anotherGetAmount > exchangeInfo.amount) {
                 anotherGetAmount = exchangeInfo.amount;
@@ -273,6 +271,11 @@ fun onInternalMessage(in: InMessage) {
             if (mulDivFloor(getAmount - anotherTotalFeeAmount, ton("1"), anotherGetAmount) < lower) {
                 throw 409;
             }
+            if (anotherGetAmount == exchangeInfo.amount) {
+                reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, 0);
+            } else {
+                reserveToncoinsOnBalance(GAS_STORAGE, 0);
+            }
 
             // send success match to order
             storage.sendSuccessMatch(
@@ -295,7 +298,6 @@ fun onInternalMessage(in: InMessage) {
                 SEND_MODE_CARRY_ALL_BALANCE,
             );
 
-
             exchangeInfo.amount -= anotherGetAmount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
@@ -306,9 +308,14 @@ fun onInternalMessage(in: InMessage) {
             // verify sender
             storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.anotherOrderCreatedAt, 0);
 
-            reserveToncoinsOnBalance(GAS_STORAGE, 0);
-
             var matchExchangeInfo = msg.matchExchangeInfo.load();
+            val increaseAmount = matchExchangeInfo.startAmount - matchExchangeInfo.amount;
+            if ((increaseAmount == 0) && (exchangeInfo.amount == 0)) {
+                reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, 0);
+            } else {
+                reserveToncoinsOnBalance(GAS_STORAGE, 0);
+            }
+
 
             storage.sendVaultTransferJetton(
                 0,
@@ -320,7 +327,6 @@ fun onInternalMessage(in: InMessage) {
                 SEND_MODE_CARRY_ALL_BALANCE,
             );
             // change storage
-            val increaseAmount = matchExchangeInfo.startAmount - matchExchangeInfo.amount;
             exchangeInfo.amount += increaseAmount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
@@ -329,7 +335,7 @@ fun onInternalMessage(in: InMessage) {
         CloseOrder => {
             storage.verifySender(in.senderAddress, null, null, null, null, 2);
             // assert(in.senderAddress == storage.owner) throw 403;
-            assert(in.valueCoins >= GAS_ORDER_CLOSE + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw 422;
+            assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw 422;
             var exchangeInfo = storage.exchangeInfo.load();
             storage.sendVaultTransferJetton(
                 0,
