@@ -190,7 +190,7 @@ fun onInternalMessage(in: InMessage) {
         }
         TonTransfer => {
             assert(storage.fromJetton == null) throw 403;
-            assert(in.valueCoins >= msg.amount + GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_TON_TRANSFER_OUT_FORWARD_FEE + GAS_VAULT_TON_TRANSFER_COMPUTE_FEE) throw 422;
+            assert(in.valueCoins >= msg.amount + GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_TON_TRANSFER) throw 422;
             reserveToncoinsOnBalance(storage.amount + msg.amount + GAS_STORAGE, 0);
             storage.sendCreateOrder(null, msg.toJetton, in.senderAddress, msg.amount, msg.priceRate, msg.slippage, msg.feeInfo, 0, SEND_MODE_CARRY_ALL_BALANCE);
             storage.amount += msg.amount;
@@ -209,18 +209,20 @@ fun onInternalMessage(in: InMessage) {
             var feeCollectorAddress = feeCollector.calculateAddress();
             assert(feeCollectorAddress == in.senderAddress) throw 403;
             if (storage.fromJetton == null) {
+                reserveToncoinsOnBalance(storage.amount - msg.amount + GAS_STORAGE, 0);
                 val body = beginCell()
                     .storeUint(0xee83652a, 32)
                 .endCell();
-                simpleMessage(msg.feeAddress, msg.amount, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+                simpleMessage(msg.feeAddress, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
             } else {
+                reserveToncoinsOnBalance(GAS_STORAGE, 0);
                 val codesInfo = storage.codesInfo.load();
                 val jettonWallet = calculateJettonWallet(
                     codesInfo.jettonWalletCode!,
                     storage.fromJetton!.load().jettonMinter,
                     contract.getAddress()
                 );
-                sendJettonTransfer(0, jettonWallet, msg.amount, msg.feeAddress, msg.feeAddress, 0, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+                sendJettonTransfer(0, jettonWallet, msg.amount, msg.feeAddress, msg.feeAddress, 0, SEND_MODE_CARRY_ALL_BALANCE);
             }
             storage.amount -= msg.amount;
             storage.save();
