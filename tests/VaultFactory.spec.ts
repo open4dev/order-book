@@ -10,122 +10,7 @@ import { Vault } from '../wrappers/Vault';
 import { Vault2 } from '../wrappers/Vault2';
 import { Order } from '../wrappers/Order';
 import { FeeCollector } from '../wrappers/MatcherFeeCollector';
-
-
-
-export const mapOpcode = (op: number): string | null => {
-    switch (op) {
-        case 0x178d4519:
-            return 'JettonWalletInternalTransfer';
-        case 0x2717c4a2:
-            return 'VaultInit';
-        case 0x2d0e1e1b:
-            return 'OrderInit';
-        case 0xfc7532f4:
-            return 'FeeCollectorAddFee';
-        case 0xec9a92f6:
-            return 'FeeCollectorWithDraw';
-        case 0x47ff7e25:
-            return 'OrderMatchOrder';
-        case 0xdfe29f63:
-            return 'OrderInternalMatchOrder';
-        case 0x52e80bac:
-            return 'OrderCloseOrder';
-        case 0x55feb42a:
-            return 'OrderSuccessMatch';
-        case 0x64e90480:
-            return 'VaultFactoryCreateVault';
-        case 0xb6cf7f0f:
-            return 'VaultFactoryChangeOwner';
-        case 0x81e36595:
-            return 'VaultFactoryInit';
-        case 0x12966c79:
-            return 'VaultJettonTransfer';
-        case 0x7362d09c:
-            return 'VaultJettonTransferNotification';
-        case 0xcbcd047e:
-            return 'VaultTonTransfer';
-        case 0xee83652a:
-            return 'VaultWithDraw';
-        case 0xecd3ad8e:
-            return 'BounceRevertInternalMatchOrder';
-        case 0xd53276db:
-            return 'JettonWalletInternalTransferExcesses';
-        case 0xf8a7ea5:
-            return 'JettonWalletTransfer';
-        default:
-            return null;
-    }
-};
-
-
-
-// export function printFullInfoAboutFees(trs: BlockchainTransaction[], source: Address) {
-//     let sourceTrs = trs.filter((e) => {
-//         const tx = flattenTransaction(e);
-//         return tx.from?.equals(source);
-//     })
-//     if (sourceTrs.length === 0) {
-//         throw new Error("Source transaction not found");
-//     }
-//     sourceTrs.forEach(transaction => {
-//         if (transaction.description.type === "generic") {
-//             console.log("transaction.totalFwdFees,", transaction.description.actionPhase?.totalFwdFees)
-//             console.log("transaction.totalActionFees,", transaction.description.actionPhase?.totalActionFees)
-//             console.log("transaction.totalComputePhase,", transaction.description.computePhase?.type === "vm" ? transaction.description.computePhase?.gasFees : null);
-//             console.log("transaction.totalCreditPhase,", transaction.description.creditPhase?.credit.coins);
-//             console.log("transaction.totalStorageFees,", transaction.description.storagePhase?.storageFeesCollected);
-//         }
-//     })
-// }
-
-export function getJettonWalletWrapper(blockchain: Blockchain, trs: SendMessageResult, jettonMinter: Address)  {
-    const jettonDeployTrs = trs.transactions.find((e) => {
-        const tx = flattenTransaction(e);
-        return tx.op == 0x178d4519;
-    });
-    const jettonWallet = blockchain.openContract(JettonWallet.createFromAddress(flattenTransaction(jettonDeployTrs!).to!));
-    
-    return jettonWallet;
-}
-
-export function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult)  {
-    const vaultDeployTrs = trs.transactions.find((e) => {
-        const tx = flattenTransaction(e);
-        return tx.op == 0x2717c4a2;
-    });
-    const vault = blockchain.openContract(Vault.createFromAddress(flattenTransaction(vaultDeployTrs!).to!));
-    
-    return vault;
-}
-
-export function getFeeCollectorWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
-    const feeCollectorDeployTrs = trs.transactions.find((e) => {
-        const tx = flattenTransaction(e);
-        // return (tx.op == 0xfc7532f4 && tx.from!.equals(vaultAddress));
-        // return tx.from?.toRawString() == vaultAddress.toRawString();
-        return (tx.op == 0xfc7532f4) && (tx.from?.equals(vaultAddress));
-    });
-    
-    if (!feeCollectorDeployTrs) {
-        throw new Error('FeeCollector deployment transaction not found');
-    }
-    
-    const feeCollector = blockchain.openContract(FeeCollector.createFromAddress(flattenTransaction(feeCollectorDeployTrs).to!));
-    
-    return feeCollector;
-}
-
-export function getOrderWrapper(blockchain: Blockchain, trs: SendMessageResult, vaultAddress: Address)  {
-    const orderDeployTrs = trs.transactions.find((e) => {
-        const tx = flattenTransaction(e);
-        return tx.op == 0x2d0e1e1b;
-    });
-    const order = blockchain.openContract(Order.createFromAddress(flattenTransaction(orderDeployTrs!).to!));
-    
-    return order;
-}
-
+import { getJettonWalletWrapper, getOrderWrapper, getVaultWrapper, mapOpcode } from './Helper.spec';
 
 describe('VaultFactory', () => {
     let code: Cell;
@@ -1838,7 +1723,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTon = await vaultTon.sendCreateOrder(user1.getSender(), toNano(1000 + 0.01 + 0.00186 + 0.006737 + 0.002535), {
             amount: toNano(1000),
             priceRate: toNano(1),
-            slippage: toNano(0.02),
+            slippage: toNano(0.01),
             toJettonMinter: toJettonMinter.address,
             providerFee: deployer.address,
             feeNum: 5,
@@ -1863,7 +1748,7 @@ describe('VaultFactory', () => {
             vault: vaultJetton.address,
             owner: user2.address,
             priceRate: toNano(1),
-            slippage: toNano(0.02),
+            slippage: toNano(0.01),
             toJettonMinter: null,
             forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
@@ -1895,12 +1780,15 @@ describe('VaultFactory', () => {
         console.log("=== Order JETTON balance BEFORE match 1:", orderJettonDataBeforeMatch1.exchangeInfo.amount)
         console.log("=== Order JETTON contract balance BEFORE match 1:", orderJettonContractBalanceBeforeMatch1)
 
+
+        const matchAmount1 = toNano(300);
+
         const resultMatchOrder1 = await orderTon.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             anotherOrder: orderJetton.address,
             createdAt: (await orderJetton.getData()).createdAt,
-            amount: toNano(300),
+            amount: matchAmount1,
         })
         console.log("Match 1 executed (300)")
         printTransactionFees(resultMatchOrder1.transactions, mapOpcode)
@@ -1918,8 +1806,8 @@ describe('VaultFactory', () => {
         console.log("=== Order JETTON balance change in match 1:", orderJettonDataAfterMatch1.exchangeInfo.amount - orderJettonDataBeforeMatch1.exchangeInfo.amount)
         console.log("=== Order JETTON contract balance change in match 1:", orderJettonContractBalanceAfterMatch1 - orderJettonContractBalanceBeforeMatch1)
 
-        expect(orderTonDataAfterMatch1.exchangeInfo.amount).toBe(orderTonBalanceInitial - toNano(300))
-        expect(orderJettonDataAfterMatch1.exchangeInfo.amount).toBe(orderJettonBalanceInitial - toNano(300))
+        expect(orderTonDataAfterMatch1.exchangeInfo.amount).toBe(orderTonBalanceInitial - matchAmount1)
+        expect(orderJettonDataAfterMatch1.exchangeInfo.amount).toBe(orderJettonBalanceInitial - matchAmount1)
 
         expect(resultMatchOrder1.transactions).toHaveTransaction({
             from: orderTon.address,
@@ -1945,12 +1833,15 @@ describe('VaultFactory', () => {
         console.log("=== Order JETTON balance BEFORE match 2:", orderJettonDataBeforeMatch2.exchangeInfo.amount)
         console.log("=== Order JETTON contract balance BEFORE match 2:", orderJettonContractBalanceBeforeMatch2)
 
+
+        const matchAmount2 = toNano(300);
+
         const resultMatchOrder2 = await orderTon.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             anotherOrder: orderJetton.address,
             createdAt: (await orderJetton.getData()).createdAt,
-            amount: toNano(300),
+            amount: matchAmount2,
         })
         console.log("Match 2 executed (300)")
         printTransactionFees(resultMatchOrder2.transactions, mapOpcode)
@@ -1968,8 +1859,8 @@ describe('VaultFactory', () => {
         console.log("=== Order JETTON balance change in match 2:", orderJettonDataAfterMatch2.exchangeInfo.amount - orderJettonDataBeforeMatch2.exchangeInfo.amount)
         console.log("=== Order JETTON contract balance change in match 2:", orderJettonContractBalanceAfterMatch2 - orderJettonContractBalanceBeforeMatch2)
 
-        expect(orderTonDataAfterMatch2.exchangeInfo.amount).toBe(orderTonBalanceInitial - toNano(600))
-        expect(orderJettonDataAfterMatch2.exchangeInfo.amount).toBe(orderJettonBalanceInitial - toNano(600))
+        expect(orderTonDataAfterMatch2.exchangeInfo.amount).toBe(orderTonBalanceInitial - matchAmount1 - matchAmount2)
+        expect(orderJettonDataAfterMatch2.exchangeInfo.amount).toBe(orderJettonBalanceInitial - matchAmount1 - matchAmount2)
 
         expect(resultMatchOrder2.transactions).toHaveTransaction({
             from: orderTon.address,
@@ -1995,12 +1886,14 @@ describe('VaultFactory', () => {
         console.log("=== Order JETTON balance BEFORE match 3:", orderJettonDataBeforeMatch3.exchangeInfo.amount)
         console.log("=== Order JETTON contract balance BEFORE match 3:", orderJettonContractBalanceBeforeMatch3)
 
+        const matchAmount3 = toNano(400);
+
         const resultMatchOrder3 = await orderTon.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             anotherOrder: orderJetton.address,
             createdAt: (await orderJetton.getData()).createdAt,
-            amount: toNano(400),
+            amount: matchAmount3,
         })
         console.log("Match 3 executed (400)")
         printTransactionFees(resultMatchOrder3.transactions, mapOpcode)
@@ -2018,8 +1911,8 @@ describe('VaultFactory', () => {
         console.log("=== Order JETTON balance change in match 3:", orderJettonDataAfterMatch3.exchangeInfo.amount - orderJettonDataBeforeMatch3.exchangeInfo.amount)
         console.log("=== Order JETTON contract balance change in match 3:", orderJettonContractBalanceAfterMatch3 - orderJettonContractBalanceBeforeMatch3)
 
-        expect(orderTonDataAfterMatch3.exchangeInfo.amount).toBe(orderTonBalanceInitial - toNano(1000))
-        expect(orderJettonDataAfterMatch3.exchangeInfo.amount).toBe(orderJettonBalanceInitial - toNano(1000))
+        expect(orderTonDataAfterMatch3.exchangeInfo.amount).toBe(orderTonBalanceInitial - matchAmount1 - matchAmount2 - matchAmount3)
+        expect(orderJettonDataAfterMatch3.exchangeInfo.amount).toBe(orderJettonBalanceInitial - matchAmount1 - matchAmount2 - matchAmount3)
 
         expect(resultMatchOrder3.transactions).toHaveTransaction({
             from: orderTon.address,

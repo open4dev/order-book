@@ -5,7 +5,7 @@ import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { JettonMinter, jettonMinterCodeCell } from '../wrappers/JettonMinter';
 import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
-import { getFeeCollectorWrapper, getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './VaultFactory.spec';
+import { getFeeCollectorWrapper, getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './Helper.spec';
 
 const anotherJettonWalletCode = Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395")
 const anotherMinterCode = Cell.fromHex("b5ee9c720101030100610002149058de03ab50a0cfce300102084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395005c68747470733a2f2f63646e2e6a6f696e636f6d6d756e6974792e78797a2f636c69636b65722f6e6f742e6a736f6e")
@@ -487,6 +487,12 @@ describe('Vault', () => {
                 amount: toNano(100),
             }
         )
+        printTransactionFees(matchRes.transactions, mapOpcode);
+
+        const order1Data = await order1.getData();
+        const order2Data = await order2.getData();
+        console.log("order1Data", order1Data);
+        console.log("order2Data", order2Data);
 
         const feeCollectorTon = getFeeCollectorWrapper(blockchain, matchRes, vaultTon.address);
         const feeCollectorTonAmount = (await feeCollectorTon.getData()).amount;
@@ -521,7 +527,7 @@ describe('Vault', () => {
         const balanceVaultJetton1 = (await blockchain.getContract(vaultJetton1.address)).balance;
         expect(balanceVaultJetton1).toEqual(toNano(0.01));
         const balanceVaultTon = (await blockchain.getContract(vaultTon.address)).balance;
-        expect(balanceVaultTon).toEqual(toNano(1800.01)); // 2000 USER TON + 0.01 GAS STORAGE
+        expect(balanceVaultTon).toEqual(toNano(1800.01)); // 2000 - (200 + fee)USER TON + 0.01 GAS STORAGE
 
     });
 

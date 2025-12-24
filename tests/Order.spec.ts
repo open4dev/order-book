@@ -1,4 +1,4 @@
-import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
+import { Blockchain, printTransactionFees, SandboxContract, TreasuryContract } from '@ton/sandbox';
 import { Cell, toNano } from '@ton/core';
 import { Order } from '../wrappers/Order';
 import '@ton/test-utils';
@@ -6,7 +6,7 @@ import { compile } from '@ton/blueprint';
 import { Vault } from '../wrappers/Vault';
 import { JettonMinter, jettonMinterCodeCell } from '../wrappers/JettonMinter';
 import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
-import { getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './VaultFactory.spec';
+import { getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './Helper.spec';
 
 
 const anotherJettonWalletCode = Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395")
@@ -309,7 +309,8 @@ describe('Order', () => {
         })
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultJetton1.address);
         expect((await order1.getData()).exchangeInfo.amount).toEqual(toNano(1));
-        const res = await order1.sendCloseOrder(deployer.getSender(), toNano(0.1));
+        const res = await order1.sendCloseOrder(deployer.getSender(), toNano(0.15));
+        printTransactionFees(res.transactions, mapOpcode);
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: vaultJetton1.address,
@@ -444,10 +445,10 @@ describe('Order', () => {
         const resCreateOrder1 = await vaultTon.sendCreateOrder(deployer.getSender(), toNano(10 + 0.01 + 0.00186 + 0.006786 + 0.002744 + 0.006), {
             amount: toNano(10),
             priceRate: toNano(10),
-            slippage: toNano(0.05),
+            slippage: toNano(0.02),
             toJettonMinter: jettonMinter1.address,
             providerFee: deployer.address,
-            feeNum: 5,
+            feeNum: 1,
             feeDenom: 1000,
             matcherFeeNum: 1,
             matcherFeeDenom: 1000,
@@ -464,7 +465,7 @@ describe('Order', () => {
             toJettonMinter: null,
             forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
             providerFee: deployer.address,
-            feeNum: 5,
+            feeNum: 1,
             feeDenom: 1000,
             matcherFeeNum: 1,
             matcherFeeDenom: 1000,
@@ -478,6 +479,7 @@ describe('Order', () => {
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
         });
+        printTransactionFees(res.transactions, mapOpcode);
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: vaultTon.address,
@@ -489,5 +491,10 @@ describe('Order', () => {
             to: vaultJetton1.address,
             success: true,
         })
+
+        const order1Data = await order1.getData();
+        const order2Data = await order2.getData();
+        console.log("order1Data", order1Data);
+        console.log("order2Data", order2Data);
     })
 });

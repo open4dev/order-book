@@ -9,15 +9,6 @@ import { Order } from '../wrappers/Order';
 export async function run(provider: NetworkProvider) {
     const order = provider.open(Order.createFromAddress(Address.parse("EQCmgaar7_b-njX3Pxv7cpuXEZWtJwjiow5Z0GR2uKiSDivc")));
 
-    await order.sendMatchOrder(
-        provider.sender(),
-        toNano(1),
-        {
-            anotherVault: Address.parse("EQB-veAjqC2M0xajfPIywpKH6S8un37CzXay5rBqmofSzQ92"),
-            anotherOrderOwner: provider.sender().address!,
-            anotherOrder: Address.parse("EQBMw7xPUaQDfg2DGZk9BgsiJym04iPryItJ4jq8jtJ5dhXo"),
-            createdAt: Number(0x694a7b34),
-            amount: toNano(0.1),
-        }
-    )
+    await order.sendCloseOrder(provider.sender(), toNano(0.002668 + 0.00883 + 0.05));
+
 }
