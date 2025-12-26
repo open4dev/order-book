@@ -8,13 +8,9 @@ export type VaultFactoryConfig = {
 
 export function vaultFactoryConfigToCell(config: VaultFactoryConfig): Cell {
     return beginCell()
-    .storeRef(
-        beginCell()
         .storeRef(config.vaultCode)
         .storeRef(config.orderCode)
         .storeRef(config.feeCollectorCode)
-        .endCell()
-    )
     .endCell()
 }
 

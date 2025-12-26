@@ -128,14 +128,11 @@ fun onInternalMessage(in: InMessage) {
                 );
                 reserveToncoinsOnBalance(GAS_STORAGE, 0);
 
-                var sendModeTransfer = SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE;
                 if (msg.closedFlag == false) {
                     if (matcherFeeAmount > 0) {
-                        sendModeTransfer = SEND_MODE_CARRY_ALL_BALANCE;
                         sendAddMatcherFee(addresses.matcher!, matcherFeeAmount, codesInfo.feeCollectorCode!, GAS_FEE_COLLECTOR_ADD_FEE, SEND_MODE_PAY_FEES_SEPARATELY);
                     }
                     if (feeAmount > 0) {
-                        sendModeTransfer = SEND_MODE_CARRY_ALL_BALANCE;
                         sendAddMatcherFee(feeInfo.provider, feeAmount,codesInfo.feeCollectorCode!, GAS_FEE_COLLECTOR_ADD_FEE, SEND_MODE_PAY_FEES_SEPARATELY);
                     }
                 }
@@ -147,7 +144,7 @@ fun onInternalMessage(in: InMessage) {
                     addresses.anotherOwnerOrder,
                     (addresses.matcher != null) ? addresses.matcher! : addresses.orderOwner,
                     0,
-                    sendModeTransfer
+                    SEND_MODE_CARRY_ALL_BALANCE
                 );
             } else {
                 var bodyRevert = beginCell()
@@ -156,8 +153,8 @@ fun onInternalMessage(in: InMessage) {
 
                 var body = beginCell().storeUint(0x15082c35, 32).endCell();
 
+                reserveToncoinsOnBalance(storage.amount - transferAmount + GAS_STORAGE, 0);
                 if (msg.closedFlag == false) {
-                    reserveToncoinsOnBalance(storage.amount - transferAmount + GAS_STORAGE, 0);
                     if (matcherFeeAmount > 0) {
                         sendAddMatcherFee(addresses.matcher!, matcherFeeAmount, codesInfo.feeCollectorCode!, GAS_FEE_COLLECTOR_ADD_FEE, SEND_MODE_PAY_FEES_SEPARATELY);
                     }
@@ -167,7 +164,7 @@ fun onInternalMessage(in: InMessage) {
                     simpleMessage(addresses.anotherOwnerOrder, transferAmount, body, SEND_MODE_PAY_FEES_SEPARATELY);
                     simpleMessage(addresses.matcher!, 0, bodyRevert, SEND_MODE_CARRY_ALL_BALANCE);
                 } else {
-                    simpleMessage(addresses.anotherOwnerOrder, transferAmount, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+                    simpleMessage(addresses.anotherOwnerOrder, transferAmount, body, SEND_MODE_CARRY_ALL_BALANCE);
                 }
             }
             storage.amount -= transferAmount;
@@ -244,7 +241,7 @@ fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, own
 
 
     var msgCreateOrder = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: order,
         value: value,
         body: beginCell()
@@ -263,7 +260,7 @@ fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, own
 fun sendAddMatcherFee(matcher: address, matcherFeeAmount: coins, feeCollectorCode: cell, value: coins, sendMode: int) {
     var matcherFeeContract: AutoDeployAddress = generateFeeCollector(contract.getAddress(), matcher, feeCollectorCode);
     var msgAddMatcherFee = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: matcherFeeContract,
         value: value,
         body: beginCell()
@@ -277,7 +274,7 @@ fun sendAddMatcherFee(matcher: address, matcherFeeAmount: coins, feeCollectorCod
 
 fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
     var msg = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: dest,
         value: value,
         body: body

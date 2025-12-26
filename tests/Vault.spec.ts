@@ -5,16 +5,20 @@ import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { JettonMinter, jettonMinterCodeCell } from '../wrappers/JettonMinter';
 import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
-import { getFeeCollectorWrapper, getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './Helper.spec';
+import { getFeeCollectorWrapper, getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './Helper';
 
 const anotherJettonWalletCode = Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395")
 const anotherMinterCode = Cell.fromHex("b5ee9c720101030100610002149058de03ab50a0cfce300102084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395005c68747470733a2f2f63646e2e6a6f696e636f6d6d756e6974792e78797a2f636c69636b65722f6e6f742e6a736f6e")
 
 describe('Vault', () => {
     let code: Cell;
+    let orderCode: Cell;
+    let feeCollectorCode: Cell;
 
     beforeAll(async () => {
         code = await compile('Vault');
+        feeCollectorCode = await compile('FeeCollector');
+        orderCode = await compile('Order');
     });
 
     let blockchain: Blockchain;
@@ -63,8 +67,8 @@ describe('Vault', () => {
             vaultFactory: mockVaultFactory.address,
             codesInfo: {
                 jettonWalletCode: undefined,
-                orderCode: await compile('Order'),
-                feeCollectorCode: await compile('FeeCollector'),
+                orderCode: orderCode,
+                feeCollectorCode: feeCollectorCode,
             },
             fromJetton: undefined,
             randomHash: BigInt(0),
@@ -75,8 +79,8 @@ describe('Vault', () => {
             vaultFactory: mockVaultFactory.address,
             codesInfo: {
                 jettonWalletCode: jettonWalletCodeCell,
-                orderCode: await compile('Order'),
-                feeCollectorCode: await compile('FeeCollector'),
+                orderCode: orderCode,
+                feeCollectorCode: feeCollectorCode,
             },
             fromJetton: {
                 jettonMinter: jettonMinter1.address,
@@ -89,8 +93,8 @@ describe('Vault', () => {
             vaultFactory: mockVaultFactory.address,
             codesInfo: {
                 jettonWalletCode: jettonWalletCodeCell,
-                orderCode: await compile('Order'),
-                feeCollectorCode: await compile('FeeCollector'),
+                orderCode: orderCode,
+                feeCollectorCode: feeCollectorCode,
             },
             fromJetton: {
                 jettonMinter: jettonMinter2.address,
@@ -346,8 +350,8 @@ describe('Vault', () => {
         });
 
         const endVaultBalance = (await blockchain.getContract(vaultTon.address)).balance;
-        console.log(startVaultBalance);
-        console.log(endVaultBalance);
+        // console.log(startVaultBalance);
+        // console.log(endVaultBalance);
         expect(endVaultBalance).toEqual(toNano(1.01)); // 1 USER TON + 0.01 GAS STORAGE
     });
 
@@ -388,8 +392,8 @@ describe('Vault', () => {
         });
 
         const endVaultBalance = (await blockchain.getContract(vaultTon.address)).balance;
-        console.log(startVaultBalance);
-        console.log(endVaultBalance);
+        // console.log(startVaultBalance);
+        // console.log(endVaultBalance);
     });
 
     it("(Vault_V1)Ton Transfer (ton-jetton2)(createOrder) - fromJetton != null", async () => {
@@ -487,21 +491,21 @@ describe('Vault', () => {
                 amount: toNano(100),
             }
         )
-        printTransactionFees(matchRes.transactions, mapOpcode);
+        // printTransactionFees(matchRes.transactions, mapOpcode);
 
         const order1Data = await order1.getData();
         const order2Data = await order2.getData();
-        console.log("order1Data", order1Data);
-        console.log("order2Data", order2Data);
+        // console.log("order1Data", order1Data);
+        // console.log("order2Data", order2Data);
 
         const feeCollectorTon = getFeeCollectorWrapper(blockchain, matchRes, vaultTon.address);
         const feeCollectorTonAmount = (await feeCollectorTon.getData()).amount;
-        console.log("feeCollectorTonAmount", feeCollectorTonAmount);
+        // console.log("feeCollectorTonAmount", feeCollectorTonAmount);
         expect(feeCollectorTonAmount).toEqual(toNano(0.4));
 
         const feeCollectorJetton = getFeeCollectorWrapper(blockchain, matchRes, vaultJetton1.address);
         const feeCollectorJettonAmount = (await feeCollectorJetton.getData()).amount;
-        console.log("feeCollectorJettonAmount", feeCollectorJettonAmount);
+        // console.log("feeCollectorJettonAmount", feeCollectorJettonAmount);
         expect(feeCollectorJettonAmount).toEqual(toNano(0.2));
 
 
@@ -512,8 +516,8 @@ describe('Vault', () => {
             success: true,
         });
 
-        console.log("withDrawResTON TRS")
-        printTransactionFees(withDrawRes.transactions, mapOpcode)
+        // console.log("withDrawResTON TRS")
+        // printTransactionFees(withDrawRes.transactions, mapOpcode)
 
 
         const withDrawResJetton = await feeCollectorJetton.sendWithDraw(deployer.getSender(), toNano(1));
@@ -521,8 +525,8 @@ describe('Vault', () => {
             to: deployer.address,
             success: true,
         });
-        console.log("withDrawResJETTON TRS")
-        printTransactionFees(withDrawResJetton.transactions, mapOpcode)
+        // console.log("withDrawResJETTON TRS")
+        // printTransactionFees(withDrawResJetton.transactions, mapOpcode)
         expect(withDrawResJetton.transactions.length).toBe(6);
         const balanceVaultJetton1 = (await blockchain.getContract(vaultJetton1.address)).balance;
         expect(balanceVaultJetton1).toEqual(toNano(0.01));

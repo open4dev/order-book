@@ -244,7 +244,7 @@ fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, own
 
 
     var msgCreateOrder = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: order,
         value: value,
         body: beginCell()
@@ -263,7 +263,7 @@ fun Storage.sendCreateOrder(mutate self, fromJetton: cell?, toJetton: cell?, own
 fun sendAddMatcherFee(matcher: address, matcherFeeAmount: coins, feeCollectorCode: cell, value: coins, sendMode: int) {
     var matcherFeeContract: AutoDeployAddress = generateFeeCollector(contract.getAddress(), matcher, feeCollectorCode);
     var msgAddMatcherFee = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: matcherFeeContract,
         value: value,
         body: beginCell()
@@ -277,7 +277,7 @@ fun sendAddMatcherFee(matcher: address, matcherFeeAmount: coins, feeCollectorCod
 
 fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
     var msg = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: dest,
         value: value,
         body: body

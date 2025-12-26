@@ -30,7 +30,7 @@ fun onInternalMessage(in: InMessage) {
             assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
 
             var msg = createMessage({
-                bounce: false,
+                bounce: BounceMode.NoBounce,
                 dest: storage.vault,
                 value: 0,
                 body: beginCell()

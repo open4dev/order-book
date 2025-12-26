@@ -1,13 +1,9 @@
 import "utils/fees"
 
-struct CodesInfo {
+struct Storage {
     vaultCode: cell
     orderCode: cell
     feeCollectorCode: cell
-}
-
-struct Storage {
-    codesInfo: Cell<CodesInfo>,
 }
 
 
@@ -32,8 +28,6 @@ fun Storage.save(self) {
 
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());
-
-
     
     var msg = lazy AllowedMessage.fromSlice(in.body);
 
@@ -42,11 +36,10 @@ fun onInternalMessage(in: InMessage) {
             assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw 422;
             reserveToncoinsOnBalance(GAS_STORAGE, 0);
 
-            var codesInfo = storage.codesInfo.load();
-            var autoDeployAddress = prepareInitVault(codesInfo.orderCode, codesInfo.vaultCode, codesInfo.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
+            var autoDeployAddress = prepareInitVault(storage.orderCode, storage.vaultCode, storage.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
             
             var reply = createMessage({
-                bounce: false,
+                bounce: BounceMode.NoBounce,
                 dest: autoDeployAddress,
                 value: 0,
                 body: beginCell()
@@ -93,7 +86,6 @@ fun prepareInitVault(
 
 get fun getData() {
     var storage = lazy Storage.fromCell(contract.getData());
-    val codesInfo = storage.codesInfo.load();
 
-    return (codesInfo.vaultCode, codesInfo.orderCode, codesInfo.feeCollectorCode);
+    return (storage.vaultCode, storage.orderCode, storage.feeCollectorCode);
 }

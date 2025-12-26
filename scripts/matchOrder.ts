@@ -7,17 +7,17 @@ import { Order } from '../wrappers/Order';
 
 
 export async function run(provider: NetworkProvider) {
-    const order = provider.open(Order.createFromAddress(Address.parse("EQCmgaar7_b-njX3Pxv7cpuXEZWtJwjiow5Z0GR2uKiSDivc")));
+    const order = provider.open(Order.createFromAddress(Address.parse("EQB0PhayEA4shaKYCqWI-WzQn4RXCOI_EI2nYIcMSJDDF3k5")));
 
     await order.sendMatchOrder(
         provider.sender(),
         toNano(1),
         {
-            anotherVault: Address.parse("EQB-veAjqC2M0xajfPIywpKH6S8un37CzXay5rBqmofSzQ92"),
+            anotherVault: Address.parse("EQBikBaA97NugW6Cnmxnkl3cIKMAo2cHmkm1e5-3t5XtKb6Z"),
             anotherOrderOwner: provider.sender().address!,
-            anotherOrder: Address.parse("EQBMw7xPUaQDfg2DGZk9BgsiJym04iPryItJ4jq8jtJ5dhXo"),
-            createdAt: Number(0x694a7b34),
-            amount: toNano(0.1),
+            anotherOrder: Address.parse("EQCZaz_qbjYWmBnt0T0CwO-pVLkPb-zMwiQPBaJ5KPYMCfhW"),
+            createdAt: Number(0x694e64ce),
+            amount: toNano(1),
         }
     )
 }

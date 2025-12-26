@@ -47,7 +47,7 @@ struct ( 0x12966c79 ) VaultTransferJetton {
 
 fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
     var msg = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: dest,
         value: value,
         body: body
@@ -99,7 +99,7 @@ fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, to
         feeInfo: feeInfo
     };
     var msg = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: self.vault,
         value: value,
         body: transferJetton
@@ -115,7 +115,7 @@ fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, s
     };
     var successInfoCell = successInfo.toCell();
     var msg = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: anotherOrder,
         value: value,
         body: beginCell()
@@ -260,9 +260,6 @@ fun onInternalMessage(in: InMessage) {
             } else {
                 reserveToncoinsOnBalance(GAS_STORAGE, 0);
             }
-
-            debug.print(anotherGetAmount);
-            debug.print(getAmount);
 
             // send success match to order
             storage.sendSuccessMatch(

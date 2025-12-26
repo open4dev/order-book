@@ -4,7 +4,7 @@ fun sendJettonTransfer(queryId: uint64, fromJettonWallet: AutoDeployAddress, jet
     //  forward_ton_amount:(VarUInteger 16) forward_payload:(Either Cell ^Cell)
     //  = InternalMsgBody;
     var msgSendTokens = createMessage({
-        bounce: false,
+        bounce: BounceMode.NoBounce,
         dest: fromJettonWallet,
         value: value,
         body: beginCell()
