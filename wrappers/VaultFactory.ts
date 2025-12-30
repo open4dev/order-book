@@ -1,43 +1,17 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
 
 export type VaultFactoryConfig = {
-    owner: Address;
     vaultCode: Cell;
     orderCode: Cell;
     feeCollectorCode: Cell;
-    comissionInfo: {
-        comission_num: number;
-        comission_denom: number;
-    };
-    comissionInfoMatcher: {
-        comission_num: number;
-        comission_denom: number;
-    };
 };
 
 export function vaultFactoryConfigToCell(config: VaultFactoryConfig): Cell {
     return beginCell()
-    .storeAddress(config.owner)
-    .storeRef(
-        beginCell()
         .storeRef(config.vaultCode)
         .storeRef(config.orderCode)
         .storeRef(config.feeCollectorCode)
-        .endCell()
-    )
-    .storeRef(
-        beginCell()
-        .storeUint(config.comissionInfo.comission_num, 14)
-        .storeUint(config.comissionInfo.comission_denom, 14)
-        .endCell()
-    )
-    .storeRef(
-        beginCell()
-        .storeUint(config.comissionInfoMatcher.comission_num, 14)
-        .storeUint(config.comissionInfoMatcher.comission_denom, 14)
-        .endCell()
-    )
-    .endCell();
+    .endCell()
 }
 
 export class VaultFactory implements Contract {

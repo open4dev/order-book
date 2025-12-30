@@ -1,26 +1,9 @@
 import "utils/fees"
 
-struct CodesInfo {
+struct Storage {
     vaultCode: cell
     orderCode: cell
     feeCollectorCode: cell
-}
-
-struct Storage {
-    owner: address,
-    codesInfo: Cell<CodesInfo>,
-}
-
-@inline_ref
-fun Storage.serialize(self): cell {
-    return self.toCell();
-}
-
-
-
-fun Storage.changeOwner(mutate self, newOwner: address): void {
-    self.owner = newOwner;
-    return contract.setData(self.serialize());
 }
 
 
@@ -33,15 +16,11 @@ struct ( 0x64e90480 ) CreateVault { // "CreateVault"c
     fromJetton: Cell<JettonInfo>?
 }
 
-struct ( 0xb6cf7f0f ) ChangeOwner { // "ChangeOwner"c
-    newOwner: address,
-}
-
 struct ( 0x81e36595 ) InitVaultFactory { // "InitVaultFactory"c
 
 }
 
-type AllowedMessage = CreateVault | ChangeOwner | InitVaultFactory
+type AllowedMessage = CreateVault | InitVaultFactory
 
 fun Storage.save(self) {
     contract.setData(self.toCell())
@@ -49,40 +28,29 @@ fun Storage.save(self) {
 
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());
-
-
     
     var msg = lazy AllowedMessage.fromSlice(in.body);
 
     match (msg) {
         CreateVault => {
             assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw 422;
+            reserveToncoinsOnBalance(GAS_STORAGE, 0);
 
-            reserveToncoinsOnBalance(0, 4);
-
-            var codesInfo = storage.codesInfo.load();
-            var autoDeployAddress = prepareInitVault(codesInfo.orderCode, codesInfo.vaultCode, codesInfo.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
+            var autoDeployAddress = prepareInitVault(storage.orderCode, storage.vaultCode, storage.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
             
             var reply = createMessage({
-                bounce: false,
+                bounce: BounceMode.NoBounce,
                 dest: autoDeployAddress,
                 value: 0,
                 body: beginCell()
                     .storeUint(0x2717c4a2, 32)
                 .endCell()
             });
-            reply.send(SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            reply.send(SEND_MODE_CARRY_ALL_BALANCE);
             return;
         }
-        ChangeOwner => {
-            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
-            assert(in.valueCoins >= GAS_VAULT_FACTORY_CHANGE_OWNER) throw 422;
-            val newOwner = msg.newOwner;
-            storage.owner = newOwner;
-            storage.save();
-        }
         InitVaultFactory => {
-            assert(in.valueCoins >= GAS_STORAGE) throw 422;
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_INIT + GAS_STORAGE) throw 422;
             return;
         }
     }
@@ -116,7 +84,8 @@ fun prepareInitVault(
 }
 
 
-get fun getOwner(): address {
+get fun getData() {
     var storage = lazy Storage.fromCell(contract.getData());
-    return storage.owner;
+
+    return (storage.vaultCode, storage.orderCode, storage.feeCollectorCode);
 }

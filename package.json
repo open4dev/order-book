@@ -25,10 +25,8 @@
     "dependencies": {
         "@ton/core": "^0.62.0",
         "@ton/crypto": "^3.3.0",
-        "@ton/sandbox": "^0.39.0",
-        "@ton/ton": "^16.0.0"
-    },
-    "overrides": {
-        "@ton/sandbox": "^0.39.0"
+        "@ton/sandbox": "0.41.0",
+        "@ton/ton": "^16.0.0",
+        "ton-sandbox-dev": "^0.35.46"
     }
 }

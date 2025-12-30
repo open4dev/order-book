@@ -133,10 +133,10 @@ export class Vault implements Contract {
     async getData(provider: ContractProvider) {
         const { stack } = await provider.get('getData', []);
         return {
-            amount: stack.readBigNumber(),
             jettonMaster: stack.readCellOpt(),
             randomHash_hex: stack.readBigNumber().toString(16),
             vaultFactory: stack.readAddress(),
+            amount: stack.readBigNumber(),
         };
     }
 

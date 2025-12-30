@@ -1,0 +1,540 @@
+{
+  "0x12bf6e295d028367401401ed3ac6c8e3a3b90419061f178031acf1c7e25be539": "Vault3",
+  "0x9ce58810545fce67a96e7a4b3b1581bd7c957c0adbf8475393a17c1eed39ab3f": "Vault2",
+  "0x331ff5f8e17a2813e758e18d5a616bfe423671228f0eec28f7e179f4a4f34660": "FeeCollector",
+  "0x7d50f2681be0df0dd0269cec335e55d80d05c96ac2bad8c870dfbee399e64f01": "VaultFactory",
+  "0xf83d05490af7c9cc58019488c7b253c9492d49c25d12d09383e52e81537e343a": "JettonMinter",
+  "0xba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395": "JettonWallet",
+  "0xa12f1777c1619a03d6b8114e56eea356b15a575e000b734497efe5b55dfc5980": "Order",
+  "0x6350d704d001effb4a3f3eeb72c88fd9acf5d22a11b27fb4c972772d297b1bb6": "Vault",
+  "0x1663ba8fe70ec957c83f9bf289f6c7628db40b9c8a1073ed199ba237481a1ac4": "Vault",
+  "Vault3": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notSupported"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "notSupported",
+        "header": 4294967295
+      }
+    ],
+    "name": "Vault3"
+  },
+  "Vault2": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notSupported"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "notSupported",
+        "header": 4294967295
+      }
+    ],
+    "name": "Vault2"
+  },
+  "FeeCollector": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xfc7532f4"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notSupported"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xec9a92f6"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xee83652a"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xf8a7ea5"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x178d4519"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xd53276db"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "0xfc7532f4",
+        "header": 4235539188
+      },
+      {
+        "name": "notSupported",
+        "header": 4294967295
+      },
+      {
+        "name": "0xec9a92f6",
+        "header": 3969553142
+      },
+      {
+        "name": "0xee83652a",
+        "header": 4001588522
+      },
+      {
+        "name": "0xf8a7ea5",
+        "header": 260734629
+      },
+      {
+        "name": "0x178d4519",
+        "header": 395134233
+      },
+      {
+        "name": "0xd53276db",
+        "header": 3576854235
+      }
+    ],
+    "name": "FeeCollector"
+  },
+  "VaultFactory": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x81e36595"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x64e90480"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x2717c4a2"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notSupported"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xb6cf7f0f"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "0x81e36595",
+        "header": 2179163541
+      },
+      {
+        "name": "0x64e90480",
+        "header": 1692992640
+      },
+      {
+        "name": "0x2717c4a2",
+        "header": 655869090
+      },
+      {
+        "name": "notSupported",
+        "header": 4294967295
+      },
+      {
+        "name": "0xb6cf7f0f",
+        "header": 3067051791
+      }
+    ],
+    "name": "VaultFactory"
+  },
+  "JettonMinter": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xd372158c"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x642b7d07"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x178d4519"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x7362d09c"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "0xd372158c",
+        "header": 3547469196
+      },
+      {
+        "name": "0x642b7d07",
+        "header": 1680571655
+      },
+      {
+        "name": "0x178d4519",
+        "header": 395134233
+      },
+      {
+        "name": "0x7362d09c",
+        "header": 1935855772
+      }
+    ],
+    "name": "JettonMinter"
+  },
+  "JettonWallet": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xf8a7ea5"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x178d4519"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x7362d09c"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xd53276db"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x2d0e1e1b"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notSupported"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "0xf8a7ea5",
+        "header": 260734629
+      },
+      {
+        "name": "0x178d4519",
+        "header": 395134233
+      },
+      {
+        "name": "0x7362d09c",
+        "header": 1935855772
+      },
+      {
+        "name": "0xd53276db",
+        "header": 3576854235
+      },
+      {
+        "name": "0x2d0e1e1b",
+        "header": 755899931
+      },
+      {
+        "name": "notSupported",
+        "header": 4294967295
+      }
+    ],
+    "name": "JettonWallet"
+  },
+  "Order": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x47ff7e25"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xdfe29f63"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x55feb42a"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x12966c79"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xfc7532f4"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xf8a7ea5"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x178d4519"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xd53276db"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notSupported"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notAllowed"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xecd3ad8e"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x2d0e1e1b"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x52e80bac"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x15082c35"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xec9a92f6"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "0x47ff7e25",
+        "header": 1207926309
+      },
+      {
+        "name": "0xdfe29f63",
+        "header": 3756171107
+      },
+      {
+        "name": "0x55feb42a",
+        "header": 1442755626
+      },
+      {
+        "name": "0x12966c79",
+        "header": 311848057
+      },
+      {
+        "name": "0xfc7532f4",
+        "header": 4235539188
+      },
+      {
+        "name": "0xf8a7ea5",
+        "header": 260734629
+      },
+      {
+        "name": "0x178d4519",
+        "header": 395134233
+      },
+      {
+        "name": "0xd53276db",
+        "header": 3576854235
+      },
+      {
+        "name": "notSupported",
+        "header": 4294967295
+      },
+      {
+        "name": "notAllowed",
+        "header": 4294967294
+      },
+      {
+        "name": "0xecd3ad8e",
+        "header": 3973295502
+      },
+      {
+        "name": "0x2d0e1e1b",
+        "header": 755899931
+      },
+      {
+        "name": "0x52e80bac",
+        "header": 1390939052
+      },
+      {
+        "name": "0x15082c35",
+        "header": 352857141
+      },
+      {
+        "name": "0xec9a92f6",
+        "header": 3969553142
+      }
+    ],
+    "name": "Order"
+  },
+  "Vault": {
+    "receivers": [
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0xcbcd047e"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x2d0e1e1b"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "0x2717c4a2"
+        }
+      },
+      {
+        "receiver": "internal",
+        "message": {
+          "kind": "typed",
+          "type": "notSupported"
+        }
+      }
+    ],
+    "types": [
+      {
+        "name": "0xcbcd047e",
+        "header": 3419210878
+      },
+      {
+        "name": "0x2d0e1e1b",
+        "header": 755899931
+      },
+      {
+        "name": "0x2717c4a2",
+        "header": 655869090
+      },
+      {
+        "name": "notSupported",
+        "header": 4294967295
+      }
+    ],
+    "name": "Vault"
+  }
+}
