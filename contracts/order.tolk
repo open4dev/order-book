@@ -32,8 +32,18 @@ struct Storage {
 
 struct VaultJettonTransferAddresses {
     ownerOrder: address
-    matcher: address?
+    matcher: address
     anotherOwnerOrder: address
+}
+
+struct ( 0x52e80bac ) CloseOrder {
+}
+
+struct ( 0xa597947e ) CloseOrderMessageToVault {
+    orderOwner: address
+    toJetton: Cell<JettonInfo>?
+    amountTransfer: coins
+    createdAtOrder: uint32
 }
 
 struct ( 0x12966c79 ) VaultTransferJetton {
@@ -41,7 +51,6 @@ struct ( 0x12966c79 ) VaultTransferJetton {
     toJetton: Cell<JettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
-    closedFlag: bool
     feeInfo: Cell<FeeInfo>
 }
 
@@ -84,7 +93,7 @@ fun Storage.sendInternalMatchOrder(mutate self, anotherOrder: address, msgBody: 
     msg.send(sendMode);
 }
 
-fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: Cell<JettonInfo>?, closedFlag: bool, destination: address, feeInfo: Cell<FeeInfo>, matcher: address?, sendMode: int) {
+fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: Cell<JettonInfo>?, destination: address, feeInfo: Cell<FeeInfo>, matcher: address, sendMode: int) {
     var addresses = VaultJettonTransferAddresses {
         ownerOrder: self.owner,
         matcher: matcher,
@@ -95,7 +104,6 @@ fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, to
         toJetton: toJetton,
         amountTransfer: amount,
         createdAtOrder: self.createdAt,
-        closedFlag: closedFlag,
         feeInfo: feeInfo
     };
     var msg = createMessage({
@@ -103,6 +111,23 @@ fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, to
         dest: self.vault,
         value: value,
         body: transferJetton
+    });
+    msg.send(sendMode);
+}
+
+
+fun Storage.sendVaultCloseOrder(self, amountTransfer: coins, value: coins, toJetton: Cell<JettonInfo>?, sendMode: int) {
+    var closeOrder = CloseOrderMessageToVault {
+        orderOwner: self.owner,
+        toJetton: toJetton,
+        amountTransfer: amountTransfer,
+        createdAtOrder: self.createdAt
+    };
+    var msg = createMessage({
+        bounce: BounceMode.NoBounce,
+        dest: self.vault,
+        value: value,
+        body: closeOrder
     });
     msg.send(sendMode);
 }
@@ -157,10 +182,6 @@ struct ( 0xdfe29f63 ) InternalMatchOrder {
     matcher: address
     matchExchangeInfo: Cell<MatchExchangeInfo>
     createdAt: uint32
-}
-
-struct ( 0x52e80bac ) CloseOrder {
-
 }
 
 struct ( 0x2d0e1e1b ) InitOrder {
@@ -276,7 +297,6 @@ fun onInternalMessage(in: InMessage) {
                 0,
                 anotherGetAmount,
                 exchangeInfo.to,
-                false,
                 msg.anotherOrderOwner,
                 matchExchangeInfo.feeInfo,
                 msg.matcher,
@@ -306,7 +326,6 @@ fun onInternalMessage(in: InMessage) {
                 0,
                 matchExchangeInfo.amount,
                 exchangeInfo.to,
-                false,
                 msg.anotherOrderOwner,
                 msg.feeInfo,
                 msg.matcher,
@@ -322,16 +341,16 @@ fun onInternalMessage(in: InMessage) {
             storage.verifySender(in.senderAddress, null, null, null, null, 2);
             assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER) throw 422;
             var exchangeInfo = storage.exchangeInfo.load();
-            storage.sendVaultTransferJetton(
-                0,
+            reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, 0);
+            storage.sendVaultCloseOrder(
                 exchangeInfo.amount,
+                0,
                 exchangeInfo.to,
-                true,
-                storage.owner,
-                storage.feeInfo!,
-                null,
-                SEND_MODE_CARRY_ALL_BALANCE + SEND_MODE_DESTROY
+                SEND_MODE_CARRY_ALL_BALANCE,
             );
+            exchangeInfo.amount = 0;
+            storage.exchangeInfo = exchangeInfo.toCell();
+            storage.save();
             return;
         }
         InitOrder => {

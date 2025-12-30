@@ -5,6 +5,16 @@ import { JettonWallet } from "../wrappers/JettonWallet";
 import { Vault } from "../wrappers/Vault";
 import { FeeCollector } from "../wrappers/MatcherFeeCollector";
 import { Order } from "../wrappers/Order";
+import { printTransactionFees } from "@ton/sandbox";
+
+export function printBlockchainConfig(blockchain: Blockchain) {
+    const config = blockchain.config;
+    const configBase64 = blockchain.configBase64;
+    console.log('\n=== Blockchain Config ===');
+    console.log('Config (Base64):', configBase64);
+    console.log('Config (Cell hash):', config.hash().toString('base64'));
+    console.log('');
+}
 
 
 export const mapOpcode = (op: number): string | null => {
@@ -35,6 +45,8 @@ export const mapOpcode = (op: number): string | null => {
             return 'VaultFactoryInit';
         case 0x12966c79:
             return 'VaultJettonTransfer';
+        case 0xa597947e:
+            return 'VaultCloseOrder';
         case 0x7362d09c:
             return 'VaultJettonTransferNotification';
         case 0xcbcd047e:
@@ -98,4 +110,74 @@ export function getOrderWrapper(blockchain: Blockchain, trs: SendMessageResult, 
     const order = blockchain.openContract(Order.createFromAddress(flattenTransaction(orderDeployTrs!).to!));
     
     return order;
+}
+
+export function printGasUsage(transactions: any[], opcodeMap?: (op: number) => string | null) {
+    const lines: string[] = [];
+    
+    lines.push('\n=== Gas Usage Report ===\n');
+    lines.push('┌─────────┬────────────────────────────────────────┬──────────────┬──────────────┬──────────────┬──────────────┐');
+    lines.push('│ (index) │ Operation                             │ Gas Used     │ Gas Limit    │ Gas Fees     │ Exit Code    │');
+    lines.push('├─────────┼────────────────────────────────────────┼──────────────┼──────────────┼──────────────┼──────────────┤');
+    
+    transactions.forEach((tx, index) => {
+        const flatTx = flattenTransaction(tx);
+        const opName = opcodeMap ? (opcodeMap(flatTx.op || 0) || `0x${(flatTx.op || 0).toString(16)}`) : `0x${(flatTx.op || 0).toString(16)}`;
+        
+        // Extract gas information from transaction
+        let gasUsed = 'N/A';
+        let gasLimit = 'N/A';
+        let gasFees = 'N/A';
+        let exitCode = 'N/A';
+        
+        const txAny = tx as any;
+        
+        // Try direct access to computePhase
+        if (txAny.computePhase) {
+            const cp = txAny.computePhase;
+            if (cp.skipped) {
+                gasUsed = 'Skipped';
+                exitCode = cp.skipReason?.toString() || 'N/A';
+            } else if (cp.gasUsed !== undefined) {
+                gasUsed = cp.gasUsed.toString();
+                gasLimit = cp.gasLimit?.toString() || 'N/A';
+                if (cp.gasFees) {
+                    gasFees = `${(Number(cp.gasFees) / 1e9).toFixed(9)} TON`;
+                }
+                exitCode = cp.exitCode?.toString() || 'N/A';
+            }
+        }
+        
+        // Try alternative structure (if computePhase is nested differently)
+        if (gasUsed === 'N/A' && txAny.description) {
+            const desc = txAny.description;
+            if (desc.computePhase) {
+                const cp = desc.computePhase;
+                if (cp.skipped) {
+                    gasUsed = 'Skipped';
+                    exitCode = cp.skipReason?.toString() || 'N/A';
+                } else if (cp.gasUsed !== undefined) {
+                    gasUsed = cp.gasUsed.toString();
+                    gasLimit = cp.gasLimit?.toString() || 'N/A';
+                    if (cp.gasFees) {
+                        gasFees = `${(Number(cp.gasFees) / 1e9).toFixed(9)} TON`;
+                    }
+                    exitCode = cp.exitCode?.toString() || 'N/A';
+                }
+            }
+        }
+        
+        const opNamePadded = opName.padEnd(40);
+        const gasUsedPadded = gasUsed.padEnd(14);
+        const gasLimitPadded = gasLimit.padEnd(14);
+        const gasFeesPadded = gasFees.padEnd(14);
+        const exitCodePadded = exitCode.padEnd(14);
+        
+        lines.push(`│ ${index.toString().padStart(7)} │ ${opNamePadded} │ ${gasUsedPadded} │ ${gasLimitPadded} │ ${gasFeesPadded} │ ${exitCodePadded} │`);
+    });
+    
+    lines.push('└─────────┴────────────────────────────────────────┴──────────────┴──────────────┴──────────────┴──────────────┘');
+    lines.push('');
+    
+    console.log(lines.join('\n'));
 }

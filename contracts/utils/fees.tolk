@@ -16,6 +16,7 @@ const GAS_VAULT_TON_TRANSFER = ton("0.006886") // max 0.01159 + 0.0001
 const GAS_VAULT_WITHDRAW = ton("0.004154")                   // max 0.004054 + 0.0001
 
 const GAS_ORDER_CLOSE_ORDER = ton("0.15")                 // max 0.002568 + 0.0001
+const GAS_ORDER_CLOSE_ORDER_FEE = ton("0.00265") // max 0.00255 + 0.0001
 const GAS_ORDER_INIT = ton("0.00186")                         // max 0.00176 + 0.0001
 const GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE = ton("0.006884")  //      0.006784 + 0.0001
 

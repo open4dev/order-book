@@ -16,16 +16,16 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: NOT
-    const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQCYNPCBS9esQq3YNp-k7QTbuq7gJ33zRg8xJp_tUzM9YzZy")));
-    await vaultFactory.sendCreateVault(
-        provider.sender(),
-        toNano(0.018176 + 0.000538 + 0.01),
-        Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395"),
-        Address.parse("EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT")
-    );
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBpSaQ_O01PaQ2upvTZdjyJiisZqbDBSQQ5J6I3GLD-pwMv")));
+    // await vaultFactory.sendCreateVault(
+    //     provider.sender(),
+    //     toNano(0.018176 + 0.000538 + 0.01),
+    //     Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395"),
+    //     Address.parse("EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT")
+    // );
 
     // JETTON: BUILD
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQCYNPCBS9esQq3YNp-k7QTbuq7gJ33zRg8xJp_tUzM9YzZy")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBpSaQ_O01PaQ2upvTZdjyJiisZqbDBSQQ5J6I3GLD-pwMv")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     toNano(0.018176 + 0.000538 + 0.01),
@@ -34,17 +34,17 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: USDT
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("0:8f936daaf897930ff3fae2809e21a411b1b2b2bb5347d51516c048b801cf9d12")));
-    // await vaultFactory.sendCreateVault(
-    //     provider.sender(),
-    //     toNano(0.018176 + 0.000538 + 0.01),
-    //     Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
-    //     Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
-    // )
+    const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBpSaQ_O01PaQ2upvTZdjyJiisZqbDBSQQ5J6I3GLD-pwMv")));
+    await vaultFactory.sendCreateVault(
+        provider.sender(),
+        toNano(0.018176 + 0.000538 + 0.01),
+        Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
+        Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
+    )
 
     // sleep(10000);
     // JETTON: TON
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBz4FYO1a_hAEAoDQEJi7iW-yM5G9U-vKeUrmvFAqMYT-pK")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQB5xR__XIv9NcKoTBvgEQ2-3oTsuaWyxbPkdFiChhCzBIoC")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     toNano(0.018176 + 0.000538 + 0.01),
@@ -54,4 +54,21 @@ export async function run(provider: NetworkProvider) {
 
     
     // run methods on `vaultFactory`
+
+    // Only for testnet
+
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("kQDpsmulKqyfzNIA5GZrtVdmzTyE5DJ0UQlkGsOz8p9sMQle")));
+    // await vaultFactory.sendCreateVault(
+    //     provider.sender(),
+    //     toNano(0.018176 + 0.000538 + 0.01),
+    //     jettonWalletCodeCell,
+    //     Address.parse("kQC17piG0E7U00zd8DoC_u4wCsEAiJzxJc1kz6PtlUf0YWDM"),
+    // );
+    // await sleep(3000) // 3 second
+    // await vaultFactory.sendCreateVault(
+    //     provider.sender(),
+    //     toNano(0.018176 + 0.000538 + 0.01),
+    //     jettonWalletCodeCell,
+    //     Address.parse("0QDdNZ--mIi-6zMbT-DpqsDz_XVWkI34aMVa2-N-lU0g8CuQ"),
+    // );
 }

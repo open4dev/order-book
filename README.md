@@ -19,7 +19,7 @@ The order book system consists of several key smart contracts:
 
 - **Vault** (`vault.tolk`, `vault2.tolk`, `vault3.tolk`) - Token storage contract that holds user funds for orders. Supports both TON and jetton deposits. Different versions handle jetton wallet address calculation differently.
 
-- **VaultFactory** (`vault_factory.tolk`) - Factory contract for creating and managing vault instances. Handles commission settings and vault deployment.
+- **VaultFactory** (`vault_factory.tolk`) - Factory contract for creating and managing vault instances. Handles vault deployment.
 
 - **FeeCollector** (`fee_collector.tolk`) - Collects and manages matcher fees from successful order matches.
 
@@ -80,33 +80,31 @@ The Vault contract stores tokens and manages transfers:
 - **JettonTransferNotification**: Receive jetton deposits and create orders
 - **TonTransfer**: Receive TON deposits and create orders
 - **VaultJettonTransfer**: Transfer tokens to matched orders with fee calculation
+- **CloseOrder**: Close an order and return remaining funds to owner
 - **WithDraw**: Withdraw accumulated fees (called by FeeCollector)
 
 ### VaultFactory Contract
 
-The VaultFactory manages vault creation and settings:
+The VaultFactory manages vault creation:
 
 - **CreateVault**: Create a new vault instance for a specific token
-- **ChangeOwner**: Change factory owner
-- **ChangeCommission**: Update provider commission rates (max 20%)
-- **ChangeCommissionMatcher**: Update matcher commission rates (max 5%)
-- **WithDraw**: Withdraw fees from vaults
+- **InitVaultFactory**: Initialize the factory contract
 
 ### FeeCollector Contract
 
 The FeeCollector accumulates matcher fees:
 
 - **AddFee**: Add matcher fee from vault (called by vault)
-- **WithDraw**: Withdraw accumulated fees to matcher
+- **WithDraw**: Withdraw accumulated fees to the owner (called by owner)
 
 ## Fee Structure
 
 The system uses a dual fee model:
 
-- **Provider Fee**: Charged by the vault provider (max 20%)
-- **Matcher Fee**: Charged by the order matcher (max 5%)
+- **Provider Fee**: Charged by the vault provider (specified as feeNum/feeDenom ratio)
+- **Matcher Fee**: Charged by the order matcher (specified as matcherFeeNum/matcherFeeDenom ratio)
 
-Fees are calculated and deducted during order matching, with matcher fees collected in FeeCollector contracts.
+Fees are calculated and deducted during order matching, with matcher fees collected in FeeCollector contracts. Fee rates are set by users when creating orders and are not validated by smart contracts.
 
 ## Slippage Protection
 
@@ -144,47 +142,130 @@ Comprehensive test suite covers:
 - Integration tests for full exchange flows
 
 
-VaultFactory With Vault1
+## Deployed Contracts
 
-VaultFactory With Vault2
+### Mainnet
 
-VaultFactory With Vault3
-EQD06imrDSVaHRMTqE33vTtWg7yolwNjRpuaJCbEUWExV7sC
+#### VaultFactory
 
+The VaultFactory contract is deployed with support for multiple vault versions:
 
-Info about TON
-Vault's Address: 
-Vault's Number: 1
-----
-Info about popular Jettons
-1) 
-Jetton's Name: NOT
-Jetton's Address: EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT
-Vault's Address: EQBFOVZf2xDm9B-8TSjIjaCZWXFmyzP7UkNq9GaoRS_FARpA
-Vault's Number: 3
+| Vault Version | Mainnet Address |
+|---------------|-----------------|
+| VaultFactory with Vault1 | `EQB5xR__XIv9NcKoTBvgEQ2-3oTsuaWyxbPkdFiChhCzBIoC` |
+| VaultFactory with Vault2 | `EQBRd1-3qzORVjva65etFNKFsCXqTkON8oskXGxgIqRHJePP` |
+| VaultFactory with Vault3 | `EQBpSaQ_O01PaQ2upvTZdjyJiisZqbDBSQQ5J6I3GLD-pwMv` |
 
-2) 
-Jetton's Name: BUILD
-Jetton's Address: EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD
-Vault's Address: EQBikBaA97NugW6Cnmxnkl3cIKMAo2cHmkm1e5-3t5XtKb6Z
-Vault's Number: 3
+#### Supported Tokens
 
-3) 
-Jetton's Name: USDT
-Jetton's Address: 
-Vault's Address: 
-Vault's Number: 3
+##### TON (Native)
 
-4)
-Jetton's Name: ANON
-Jetton's Address: 
-Vault's Address: 
-Vault's Number: 2
+| Property | Value |
+|----------|-------|
+| **Vault Address** | `EQC5x_lgkWNW3G3A3bh3pz9fkFXF0VZLqkx-gGOgwRm9LBoX` |
+| **Vault Version** | 1 |
 
+##### Popular Jettons
 
-If your jetton not supported in these vaults, you can make pull requests. You can change only calculateJettonWallet function. If you change other lines, we can't take your pull requests:(
+###### 1. NOT
 
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | `EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT` |
+| **Vault Address** | `EQA8yOYAcTFc_PlaZqgVl8T0E3_493hzSgD2GXgQEj4bS_In` |
+| **Vault Version** | 3 |
 
+###### 2. BUILD
 
-Warning!!!:
-if you create order where calculateJettonWallet in Vault doesn't match with your jetton wallet smart contract than vault doesn't create order
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | `EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD` |
+| **Vault Address** | `EQD45c5VAClGgnUJAiGzGcgnC6MpJ73wynLkUykgtp2QouJ6` |
+| **Vault Version** | 3 |
+
+###### 3. USDT
+
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | `EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs` |
+| **Vault Address** | `EQBhQUL8m7xWdas74NF1NUTbEYS3RRS0G7-wuRcUuI3yg-wV` |
+| **Vault Version** | 3 |
+
+###### 4. ANON
+
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | _To be added_ |
+| **Vault Address** | _To be added_ |
+| **Vault Version** | 2 |
+
+---
+
+### Testnet
+
+#### VaultFactory
+
+The VaultFactory contract is deployed with support for multiple vault versions:
+
+| Vault Version | Testnet Address |
+|---------------|-----------------|
+| VaultFactory with Vault1 | _To be added_ |
+| VaultFactory with Vault2 | _To be added_ |
+| VaultFactory with Vault3 | _To be added_ |
+
+#### Supported Tokens
+
+##### TON (Native)
+
+| Property | Value |
+|----------|-------|
+| **Vault Address** | _To be added_ |
+| **Vault Version** | 1 |
+
+##### Popular Jettons
+
+###### 1. NOT
+
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | _To be added_ |
+| **Vault Address** | _To be added_ |
+| **Vault Version** | 3 |
+
+###### 2. BUILD
+
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | _To be added_ |
+| **Vault Address** | _To be added_ |
+| **Vault Version** | 3 |
+
+###### 3. USDT
+
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | _To be added_ |
+| **Vault Address** | _To be added_ |
+| **Vault Version** | 3 |
+
+###### 4. ANON
+
+| Property | Value |
+|----------|-------|
+| **Jetton Address** | _To be added_ |
+| **Vault Address** | _To be added_ |
+| **Vault Version** | 2 |
+
+---
+
+## Contributing
+
+### Adding New Jetton Support
+
+If your jetton is not supported in these vaults, you can submit a pull request. 
+
+**Important:** You can **only** modify the `calculateJettonWallet` function. Pull requests that modify other parts of the code will not be accepted.
+
+### ⚠️ Warning
+
+If you create an order where the `calculateJettonWallet` function in the Vault doesn't match your jetton wallet smart contract, the vault **will not create the order**.

@@ -7,6 +7,6 @@ import { Order } from '../wrappers/Order';
 
 
 export async function run(provider: NetworkProvider) {
-    const order = provider.open(Order.createFromAddress(Address.parse("EQB0PhayEA4shaKYCqWI-WzQn4RXCOI_EI2nYIcMSJDDF3k5")));
+    const order = provider.open(Order.createFromAddress(Address.parse("EQA-DuarS2dFzRM7khypkfyUI8S5QojouNX28HE3LgovO-rp")));
     await order.sendCloseOrder(provider.sender(), toNano(0.15));
 }

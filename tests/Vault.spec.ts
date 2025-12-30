@@ -174,7 +174,7 @@ describe('Vault', () => {
         });
 
         const endVaultBalance = (await blockchain.getContract(vaultJetton1.address)).balance;
-        expect(endVaultBalance - startVaultBalance).toBe(toNano(0));
+        expect(endVaultBalance).toBe(toNano(0.01));
     });
 
     it("(Vault_V1)Jetton Transfer Notification(jetton1-jetton2)(createOrder) - not enough value", async () => {
