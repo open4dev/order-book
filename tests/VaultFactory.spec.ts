@@ -305,7 +305,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder = await order1.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vault2.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
         })
@@ -426,7 +425,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder = await order1.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vault2.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(15),
         })
@@ -531,7 +529,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder = await order1.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vault2.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
         })
@@ -644,7 +641,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder1 = await orderTon1.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: orderJetton1.address,
             createdAt: (await orderJetton1.getData()).createdAt,
             amount: toNano(500),
         })
@@ -735,7 +731,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder2 = await orderTon2.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: orderJetton2.address,
             createdAt: (await orderJetton2.getData()).createdAt,
             amount: toNano(1000),
         })
@@ -825,7 +820,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder3 = await orderTon3.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: orderJetton3.address,
             createdAt: (await orderJetton3.getData()).createdAt,
             amount: toNano(500),
         })
@@ -962,7 +956,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder1 = await orderTon.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: orderJetton.address,
             createdAt: (await orderJetton.getData()).createdAt,
             amount: matchAmount1,
         })
@@ -1016,7 +1009,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder2 = await orderTon.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: orderJetton.address,
             createdAt: (await orderJetton.getData()).createdAt,
             amount: matchAmount2,
         })
@@ -1068,7 +1060,6 @@ describe('VaultFactory', () => {
         const resultMatchOrder3 = await orderTon.sendMatchOrder(user1.getSender(), toNano(1), {
             anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
-            anotherOrder: orderJetton.address,
             createdAt: (await orderJetton.getData()).createdAt,
             amount: matchAmount3,
         })

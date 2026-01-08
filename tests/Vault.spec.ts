@@ -121,7 +121,7 @@ describe('Vault', () => {
             from: deployer.address,
             to: vaultTon.address,
             success: false,
-            exitCode: 422,
+            exitCode: 403,
         });
     });
 
@@ -132,7 +132,7 @@ describe('Vault', () => {
             from: mockVaultFactory.address,
             to: vaultTon.address,
             success: false,
-            exitCode: 423,
+            exitCode: 422,
         });
     });
 
@@ -422,7 +422,7 @@ describe('Vault', () => {
         expect(transferTonResult.transactions).toHaveTransaction({
             to: vaultJetton1.address,
             success: false,
-            exitCode: 403,
+            exitCode: 432,
         });
         // check create order transaction
         expect(transferTonResult.transactions).not.toHaveTransaction({
@@ -486,7 +486,6 @@ describe('Vault', () => {
             {
                 anotherVault: vaultTon.address,
                 anotherOrderOwner: user1.address,
-                anotherOrder: order2.address,
                 createdAt: (await order2.getData()).createdAt,
                 amount: toNano(100),
             }
@@ -589,7 +588,6 @@ describe('Vault', () => {
             {
                 anotherVault: vaultTon.address,
                 anotherOrderOwner: user1.address,
-                anotherOrder: order2.address,
                 createdAt: (await order2.getData()).createdAt,
                 amount: toNano(100),
             }
@@ -672,7 +670,6 @@ describe('Vault', () => {
             {
                 anotherVault: vaultTon.address,
                 anotherOrderOwner: user1.address,
-                anotherOrder: order2.address,
                 createdAt: (await order2.getData()).createdAt,
                 amount: toNano(100),
             }

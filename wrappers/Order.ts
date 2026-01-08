@@ -146,7 +146,6 @@ export class Order implements Contract {
     async sendMatchOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
         anotherVault: Address,
         anotherOrderOwner: Address,
-        anotherOrder: Address,
         createdAt: number,
         amount: bigint,
     }) {
@@ -168,7 +167,6 @@ export class Order implements Contract {
             .storeUint(0x47ff7e25, 32)
             .storeAddress(params.anotherVault)
             .storeAddress(params.anotherOrderOwner)
-            .storeAddress(params.anotherOrder)
             .storeUint(params.createdAt, 32)
             .storeCoins(params.amount)
             .endCell(),

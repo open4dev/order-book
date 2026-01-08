@@ -1,4 +1,6 @@
 import "utils/fees"
+import "utils/errors.tolk"
+import "utils/op_codes.tolk"
 
 struct Storage {
     vault: address
@@ -26,15 +28,15 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         WithDraw => {
-            assert(in.valueCoins >= GAS_FEE_COLLECTOR_WITHDRAW + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw 422;
-            assert(in.senderAddress == storage.owner) throw 403; // Check if the sender is the owner
+            assert(in.valueCoins >= GAS_FEE_COLLECTOR_WITHDRAW + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw ERR_INSUFFICIENT_GAS;
+            assert(in.senderAddress == storage.owner) throw ERR_INVALID_SENDER; // Check if the sender is the owner
 
             var msg = createMessage({
                 bounce: BounceMode.NoBounce,
                 dest: storage.vault,
                 value: 0,
                 body: beginCell()
-                    .storeUint(0xee83652a, 32)
+                    .storeUint(OP_CODE_VAULT_WITHDRAW, 32)
                     .storeAddress(storage.owner)
                     .storeCoins(storage.amount)
                 .endCell()
@@ -47,8 +49,8 @@ fun onInternalMessage(in: InMessage) {
             return;
         }
         AddFee => {
-            assert(in.valueCoins >= GAS_FEE_COLLECTOR_ADD_FEE) throw 422;
-            assert(in.senderAddress == storage.vault) throw 403; // Check if the sender is the owner
+            assert(in.valueCoins >= GAS_FEE_COLLECTOR_ADD_FEE) throw ERR_INSUFFICIENT_GAS;
+            assert(in.senderAddress == storage.vault) throw ERR_INVALID_SENDER; // Check if the sender is the owner
             storage.amount += msg.amount;
             storage.save();
             return;

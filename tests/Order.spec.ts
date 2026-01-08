@@ -225,7 +225,7 @@ describe('Order', () => {
             from: fakeVault.address,
             to: order.address,
             success: false,
-            exitCode: 403,
+            exitCode: 431,
         });
     });
 
@@ -271,14 +271,13 @@ describe('Order', () => {
         const res = await order1.sendMatchOrder(deployer.getSender(), toNano(1), {
             anotherVault: vaultJetton2.address,
             anotherOrderOwner: deployer.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(1), // 1 jetton
         });
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: order2.address,
-            exitCode: 407,
+            exitCode: 430,
         })
 
         expect(res.transactions).toHaveTransaction({
@@ -363,7 +362,6 @@ describe('Order', () => {
         const res = await order1.sendMatchOrder(deployer.getSender(), toNano(1), {
             anotherVault: vaultJetton2.address,
             anotherOrderOwner: deployer.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
         });
@@ -457,7 +455,6 @@ describe('Order', () => {
         const res = await order1.sendMatchOrder(deployer.getSender(), toNano(1), {
             anotherVault: vaultJetton2.address,
             anotherOrderOwner: deployer.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(100),
         });
@@ -512,7 +509,6 @@ describe('Order', () => {
         const res = await order1.sendMatchOrder(deployer.getSender(), toNano(1), {
             anotherVault: vaultTon.address,
             anotherOrderOwner: deployer.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(100),
         });
@@ -569,7 +565,6 @@ describe('Order', () => {
         const res = await order1.sendMatchOrder(deployer.getSender(), toNano(1), {
             anotherVault: vaultJetton1.address,
             anotherOrderOwner: deployer.address,
-            anotherOrder: order2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
         });
