@@ -1,5 +1,7 @@
 import "utils/generate_addresses.tolk";
 import "utils/fees.tolk";
+import "utils/errors.tolk";
+import "utils/op_codes.tolk"
 
 struct JettonInfo {
     jettonMinter: address
@@ -144,7 +146,7 @@ fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, s
         dest: anotherOrder,
         value: value,
         body: beginCell()
-            .storeUint(0x55feb42a, 32)
+            .storeUint(OP_CODE_SUCCESS_MATCH, 32)
             .storeAddress(self.vault)
             .storeAddress(self.owner)
             .storeUint(self.createdAt, 32)
@@ -171,7 +173,6 @@ struct MatchExchangeInfo {
 struct ( 0x47ff7e25 ) MatchOrder {
     anotherVault: address
     anotherOrderOwner: address
-    anotherOrder: address
     createdAt: uint32
     amount: coins
 }
@@ -214,10 +215,10 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         MatchOrder => {
-            assert(in.valueCoins >= GAS_ORDER_FULL_MATCH) throw 422;
+            assert(in.valueCoins >= GAS_ORDER_FULL_MATCH) throw ERR_INSUFFICIENT_GAS;
             var exchangeInfo = storage.exchangeInfo.load();
-            assert(exchangeInfo.amount > 0) throw 406;
-            assert(msg.amount <= exchangeInfo.amount) throw 407;
+            assert(exchangeInfo.amount > 0) throw ERR_AMOUNT_NOT_AVAILABLE;
+            assert(msg.amount <= exchangeInfo.amount) throw ERR_INVALID_AMOUNT;
             var generatedOrder = generateOrder(
                 msg.anotherVault,
                 msg.anotherOrderOwner,
@@ -226,10 +227,7 @@ fun onInternalMessage(in: InMessage) {
                 contract.getCode(),
                 msg.createdAt
             );
-
             var generatedOrderAddress = generatedOrder.calculateAddress();
-
-            assert(generatedOrderAddress == msg.anotherOrder) throw 403;
 
             var matchInternalExchangeInfo = MatchExchangeInfo {
                 amount: msg.amount,
@@ -247,7 +245,7 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.sendInternalMatchOrder(
-                msg.anotherOrder,
+                generatedOrderAddress,
                 bodyInternalMatchOrder.toCell(),
                 0,
                 SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE
@@ -259,7 +257,16 @@ fun onInternalMessage(in: InMessage) {
         }
         InternalMatchOrder => {
             var exchangeInfo = storage.exchangeInfo.load();
-            storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.createdAt, 0);
+            var anotherOrder = generateOrder(
+                msg.anotherVault,
+                msg.anotherOrderOwner,
+                exchangeInfo.to,
+                exchangeInfo.from,
+                contract.getCode(),
+                msg.createdAt
+            );
+            var generatedAnotherOrderAddress = anotherOrder.calculateAddress();
+            assert(in.senderAddress == generatedAnotherOrderAddress) throw ERR_INVALID_SENDER;
             var matchExchangeInfo = msg.matchExchangeInfo.load();
             var matchFeeInfo = matchExchangeInfo.feeInfo.load();
             var feeInfo = storage.feeInfo!.load();
@@ -268,7 +275,7 @@ fun onInternalMessage(in: InMessage) {
 
             val (compareSlippage, lower) = compareWithSlippage(matchExchangeInfo_priceRate_withFee, exchangeInfo.priceRate, exchangeInfo.slippage);
             val (anotherCompareSlippage, anotherLower) = compareWithSlippage(exchangeInfo_priceRate_withFee, matchExchangeInfo.priceRate, matchExchangeInfo.slippage);
-            assert ((exchangeInfo.amount > 0) && (compareSlippage == 0) && (anotherCompareSlippage == 0)) throw 407;
+            assert ((exchangeInfo.amount > 0) && (compareSlippage == 0) && (anotherCompareSlippage == 0)) throw ERR_INVALID_SLIPPAGE;
             
             var anotherGetAmount = mulDivFloor(matchExchangeInfo.amount, matchExchangeInfo.priceRate, ton("1"));
             if (anotherGetAmount > exchangeInfo.amount) {
@@ -310,18 +317,23 @@ fun onInternalMessage(in: InMessage) {
         }
         SuccessMatch => {
             var exchangeInfo = storage.exchangeInfo.load();
-            // verify sender
-            storage.verifySender(in.senderAddress, exchangeInfo, msg.anotherVault, msg.anotherOrderOwner, msg.anotherOrderCreatedAt, 0);
-
+            var anotherOrder = generateOrder(
+                msg.anotherVault,
+                msg.anotherOrderOwner,
+                exchangeInfo.to,
+                exchangeInfo.from,
+                contract.getCode(),
+                msg.anotherOrderCreatedAt
+            );
+            var generatedAnotherOrderAddress = anotherOrder.calculateAddress();
+            assert(in.senderAddress == generatedAnotherOrderAddress) throw ERR_INVALID_SENDER;
             var matchExchangeInfo = msg.matchExchangeInfo.load();
             val increaseAmount = matchExchangeInfo.startAmount - matchExchangeInfo.amount;
             if ((increaseAmount == 0) && (exchangeInfo.amount == 0)) {
-                reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, 0);
+                reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             } else {
-                reserveToncoinsOnBalance(GAS_STORAGE, 0);
+                reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             }
-
-
             storage.sendVaultTransferJetton(
                 0,
                 matchExchangeInfo.amount,
@@ -331,17 +343,16 @@ fun onInternalMessage(in: InMessage) {
                 msg.matcher,
                 SEND_MODE_CARRY_ALL_BALANCE,
             );
-            // change storage
             exchangeInfo.amount += increaseAmount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
             return;
         }
         CloseOrder => {
-            storage.verifySender(in.senderAddress, null, null, null, null, 2);
-            assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER) throw 422;
+            assert(in.senderAddress == storage.owner) throw ERR_INVALID_SENDER;
+            assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
             var exchangeInfo = storage.exchangeInfo.load();
-            reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, 0);
+            reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             storage.sendVaultCloseOrder(
                 exchangeInfo.amount,
                 0,
@@ -354,10 +365,10 @@ fun onInternalMessage(in: InMessage) {
             return;
         }
         InitOrder => {
-            storage.verifySender(in.senderAddress, null, null, null, null, 1); // type 1 = vault
-            assert(in.valueCoins >= GAS_STORAGE) throw 422;
+            assert(in.senderAddress == storage.vault) throw ERR_INVALID_SENDER;
+            assert(in.valueCoins >= GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
             var exchangeInfo = storage.exchangeInfo.load();
-            assert(exchangeInfo.amount == 0) throw 403;
+            assert(exchangeInfo.amount == 0) throw ERR_ORDER_ALREADY_INITIALIZED;
             exchangeInfo.amount = msg.amount;
             exchangeInfo.priceRate = msg.priceRate;
             exchangeInfo.slippage = msg.slippage;
@@ -373,10 +384,8 @@ type BouncedMessage = InternalMatchOrder
 
 fun onBouncedMessage(in: InMessageBounced) {
     var storage = lazy Storage.fromCell(contract.getData());
-
-    val rich = lazy RichBounceBody.fromSlice(in.bouncedBody);
-
-    var msg = lazy BouncedMessage.fromCell(rich.originalBody);
+    val richBounceMessage = lazy RichBounceBody.fromSlice(in.bouncedBody);
+    var msg = lazy BouncedMessage.fromCell(richBounceMessage.originalBody);
     match (msg) {
         InternalMatchOrder => {
             var msgExchangeInfo = msg.matchExchangeInfo.load();
@@ -384,42 +393,15 @@ fun onBouncedMessage(in: InMessageBounced) {
             storageExchangeInfo.amount += msgExchangeInfo.amount;
             storage.exchangeInfo = storageExchangeInfo.toCell();
             storage.save();
-            simpleMessage(msg.matcher, 0, beginCell().storeUint(0xecd3ad8e, 32).endCell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            simpleMessage(msg.matcher, 0, beginCell().storeUint(OP_CODE_RETURN_MATCHER_FAILED, 32).endCell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
             return;   
         }
     }
     return;
 }
 
-fun Storage.verifySender(mutate self, senderAddress: address, exchangeInfo: ExchangeInfo | null, anotherVault: address | null, anotherOrderOwner: address | null, createdAt: uint32 | null, typeVerify: int) {
-    match (typeVerify) {
-        0 => {
-            var anotherOrder = generateOrder(
-                anotherVault!,
-                anotherOrderOwner!,
-                exchangeInfo!.to,
-                exchangeInfo!.from,
-                contract.getCode(),
-                createdAt!
-            );
-            var generatedAnotherOrderAddress = anotherOrder.calculateAddress();
-            assert(senderAddress == generatedAnotherOrderAddress) throw 403;
-        }
-        1 => {
-            assert(senderAddress == self.vault) throw 403;
-        }
-        2 => {
-            assert(senderAddress == self.owner) throw 403;
-        }
-    }
-
-}
-
-
 get fun getData(): (address, address, cell, uint32) {
     var storage = lazy Storage.fromCell(contract.getData());
-
-
 
     return (storage.owner, storage.vault, storage.exchangeInfo, storage.createdAt);
 }

@@ -1,3 +1,5 @@
+import "op_codes.tolk"
+
 fun sendJettonTransfer(queryId: uint64, fromJettonWallet: AutoDeployAddress, jettonAmount: coins, to: address, responseDestination: address, value: coins, sendMode: int) {
     // transfer#0f8a7ea5 query_id:uint64 amount:(VarUInteger 16) destination:MsgAddress
     //  response_destination:MsgAddress custom_payload:(Maybe ^Cell)
@@ -8,7 +10,7 @@ fun sendJettonTransfer(queryId: uint64, fromJettonWallet: AutoDeployAddress, jet
         dest: fromJettonWallet,
         value: value,
         body: beginCell()
-            .storeUint(0xf8a7ea5, 32).storeUint(queryId, 64) // 0xf8a7ea5 op: transfer
+            .storeUint(OP_CODE_JETTON_TRANSFER, 32).storeUint(queryId, 64) // op: transfer
             .storeCoins(jettonAmount)
             .storeAddress(to)
             .storeAddress(responseDestination)

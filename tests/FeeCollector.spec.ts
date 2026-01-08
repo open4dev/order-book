@@ -100,12 +100,14 @@ describe('FeeCollector', () => {
         const dataBefore = await feeCollector.getData();
         expect(dataBefore.amount).toEqual(toNano(0));
         const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), toNano(0.1), toNano(100));
+        // printTransactionFees(resAddFee.transactions);
         expect(resAddFee.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
             success: true,
         });
         const resWithDraw = await feeCollector.sendWithDraw(user1.getSender(), toNano(0.1));
+        // printTransactionFees(resWithDraw.transactions);
         expect(resWithDraw.transactions).toHaveTransaction({
             from: user1.address,
             to: feeCollector.address,

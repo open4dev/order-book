@@ -1,4 +1,6 @@
 import "utils/fees"
+import "utils/errors.tolk"
+import "utils/op_codes.tolk"
 
 struct Storage {
     vaultCode: cell
@@ -33,8 +35,8 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         CreateVault => {
-            assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw 422;
-            reserveToncoinsOnBalance(GAS_STORAGE, 0);
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
+            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
 
             var autoDeployAddress = prepareInitVault(storage.orderCode, storage.vaultCode, storage.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
             
@@ -43,14 +45,14 @@ fun onInternalMessage(in: InMessage) {
                 dest: autoDeployAddress,
                 value: 0,
                 body: beginCell()
-                    .storeUint(0x2717c4a2, 32)
+                    .storeUint(OP_CODE_VAULT_INIT, 32)
                 .endCell()
             });
             reply.send(SEND_MODE_CARRY_ALL_BALANCE);
             return;
         }
         InitVaultFactory => {
-            assert(in.valueCoins >= GAS_VAULT_FACTORY_INIT + GAS_STORAGE) throw 422;
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_INIT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
             return;
         }
     }
