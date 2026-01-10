@@ -1,11 +1,12 @@
-import "utils/generate_addresses.tolk";
-import "utils/fees.tolk";
-import "utils/errors.tolk";
+import "utils/types.tolk"
+import "utils/errors.tolk"
 import "utils/op_codes.tolk"
+import "utils/fees.tolk"
+import "utils/fee_calc.tolk"
+import "utils/messages.tolk"
+import "utils/generate_addresses.tolk"
 
-struct JettonInfo {
-    jettonMinter: address
-}
+const SLIPPAGE_PRECISION = 1000000000; // 1e9 = 100%
 
 struct ExchangeInfo {
     from: Cell<JettonInfo>?
@@ -15,15 +16,6 @@ struct ExchangeInfo {
     slippage: uint30
 }
 
-struct FeeInfo {
-    provider: address
-    feeNum: uint14
-    feeDenom: uint14
-    matcherFeeNum: uint14
-    matcherFeeDenom: uint14
-}
-
-
 struct Storage {
     owner: address
     vault: address
@@ -32,14 +24,8 @@ struct Storage {
     createdAt: uint32
 }
 
-struct VaultJettonTransferAddresses {
-    ownerOrder: address
-    matcher: address
-    anotherOwnerOrder: address
-}
-
-struct ( 0x52e80bac ) CloseOrder {
-}
+// Message structs with opcodes
+struct ( 0x52e80bac ) CloseOrder {}
 
 struct ( 0xa597947e ) CloseOrderMessageToVault {
     orderOwner: address
@@ -49,119 +35,12 @@ struct ( 0xa597947e ) CloseOrderMessageToVault {
 }
 
 struct ( 0x12966c79 ) VaultTransferJetton {
-    addresses: Cell<VaultJettonTransferAddresses>
+    addresses: Cell<TransferAddresses>
     toJetton: Cell<JettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
     feeInfo: Cell<FeeInfo>
 }
-
-fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
-    var msg = createMessage({
-        bounce: BounceMode.NoBounce,
-        dest: dest,
-        value: value,
-        body: body
-    });
-    msg.send(sendMode);
-}
-
-
-// Returns -1 if actual < lower bound (> slippage below reference)
-// Returns 1 if actual > upper bound (> slippage above reference)
-// Returns 0 if within [reference*(1-slippage), reference*(1+slippage)] range
-fun compareWithSlippage(actual: coins, reference: coins, slippage: uint30): (int, int) {
-    var denom = 1000000000; // 1e9 = 100%
-    actual = mulDivFloor(ton("1"), ton("1"), actual);
-    var lower = mulDivFloor(reference, denom - slippage, denom);
-    if (actual < lower) {
-        return (-1, 0);
-    }
-    var upper = mulDivFloor(reference, denom + slippage, denom);
-    if (actual > upper) {
-        return (1, 0);
-    }
-    return (0, lower);
-}
-
-
-fun Storage.sendInternalMatchOrder(mutate self, anotherOrder: address, msgBody: cell, value: coins, sendMode: int) {
-    var msg = createMessage({
-        bounce: BounceMode.RichBounce,
-        dest: anotherOrder,
-        value: value,
-        body: msgBody
-    });
-    msg.send(sendMode);
-}
-
-fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: Cell<JettonInfo>?, destination: address, feeInfo: Cell<FeeInfo>, matcher: address, sendMode: int) {
-    var addresses = VaultJettonTransferAddresses {
-        ownerOrder: self.owner,
-        matcher: matcher,
-        anotherOwnerOrder: destination,
-    };
-    var transferJetton = VaultTransferJetton {
-        addresses: addresses.toCell(),
-        toJetton: toJetton,
-        amountTransfer: amount,
-        createdAtOrder: self.createdAt,
-        feeInfo: feeInfo
-    };
-    var msg = createMessage({
-        bounce: BounceMode.NoBounce,
-        dest: self.vault,
-        value: value,
-        body: transferJetton
-    });
-    msg.send(sendMode);
-}
-
-
-fun Storage.sendVaultCloseOrder(self, amountTransfer: coins, value: coins, toJetton: Cell<JettonInfo>?, sendMode: int) {
-    var closeOrder = CloseOrderMessageToVault {
-        orderOwner: self.owner,
-        toJetton: toJetton,
-        amountTransfer: amountTransfer,
-        createdAtOrder: self.createdAt
-    };
-    var msg = createMessage({
-        bounce: BounceMode.NoBounce,
-        dest: self.vault,
-        value: value,
-        body: closeOrder
-    });
-    msg.send(sendMode);
-}
-
-
-fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, startAmount: coins, amount: coins, matcher: address, sendMode: int) {
-    var successInfo = SuccessInfo {
-        startAmount: startAmount,
-        amount: amount
-    };
-    var successInfoCell = successInfo.toCell();
-    var msg = createMessage({
-        bounce: BounceMode.NoBounce,
-        dest: anotherOrder,
-        value: value,
-        body: beginCell()
-            .storeUint(OP_CODE_SUCCESS_MATCH, 32)
-            .storeAddress(self.vault)
-            .storeAddress(self.owner)
-            .storeUint(self.createdAt, 32)
-            .storeAddress(matcher)
-            .storeRef(self.feeInfo!)
-            .storeRef(successInfoCell)
-        .endCell()
-    });
-    msg.send(sendMode);
-}
-
-fun Storage.save(self) {
-    contract.setData(self.toCell())
-}
-
 
 struct MatchExchangeInfo {
     amount: coins
@@ -208,9 +87,67 @@ struct ( 0x55feb42a ) SuccessMatch {
 
 type AllowedMessage = MatchOrder | InternalMatchOrder | CloseOrder | InitOrder | SuccessMatch
 
+// Simplified slippage check - returns true if within acceptable range
+fun isWithinSlippage(actual: coins, reference: coins, slippage: uint30): bool {
+    val invActual = mulDivFloor(ton("1"), ton("1"), actual);
+    val lower = mulDivFloor(reference, SLIPPAGE_PRECISION - slippage, SLIPPAGE_PRECISION);
+    val upper = mulDivFloor(reference, SLIPPAGE_PRECISION + slippage, SLIPPAGE_PRECISION);
+    return (invActual >= lower) && (invActual <= upper);
+}
+
+fun Storage.save(self) {
+    contract.setData(self.toCell())
+}
+
+fun Storage.sendInternalMatchOrder(mutate self, anotherOrder: address, msgBody: cell, value: coins, sendMode: int) {
+    sendBouncedMessage(anotherOrder, value, msgBody, sendMode);
+}
+
+fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, toJetton: Cell<JettonInfo>?, destination: address, feeInfo: Cell<FeeInfo>, matcher: address, sendMode: int) {
+    var addresses = TransferAddresses {
+        orderOwner: self.owner,
+        matcher: matcher,
+        counterparty: destination,
+    };
+    var transferJetton = VaultTransferJetton {
+        addresses: addresses.toCell(),
+        toJetton: toJetton,
+        amountTransfer: amount,
+        createdAtOrder: self.createdAt,
+        feeInfo: feeInfo
+    };
+    sendSimpleMessage(self.vault, value, transferJetton.toCell(), sendMode);
+}
+
+fun Storage.sendVaultCloseOrder(self, amountTransfer: coins, value: coins, toJetton: Cell<JettonInfo>?, sendMode: int) {
+    var closeOrder = CloseOrderMessageToVault {
+        orderOwner: self.owner,
+        toJetton: toJetton,
+        amountTransfer: amountTransfer,
+        createdAtOrder: self.createdAt
+    };
+    sendSimpleMessage(self.vault, value, closeOrder.toCell(), sendMode);
+}
+
+fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, startAmount: coins, amount: coins, matcher: address, sendMode: int) {
+    var successInfo = SuccessInfo {
+        startAmount: startAmount,
+        amount: amount
+    };
+    var body = beginCell()
+        .storeUint(OP_CODE_SUCCESS_MATCH, 32)
+        .storeAddress(self.vault)
+        .storeAddress(self.owner)
+        .storeUint(self.createdAt, 32)
+        .storeAddress(matcher)
+        .storeRef(self.feeInfo!)
+        .storeRef(successInfo.toCell())
+    .endCell();
+    sendSimpleMessage(anotherOrder, value, body, sendMode);
+}
+
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());
-
     var msg = lazy AllowedMessage.fromSlice(in.body);
 
     match (msg) {
@@ -219,6 +156,7 @@ fun onInternalMessage(in: InMessage) {
             var exchangeInfo = storage.exchangeInfo.load();
             assert(exchangeInfo.amount > 0) throw ERR_AMOUNT_NOT_AVAILABLE;
             assert(msg.amount <= exchangeInfo.amount) throw ERR_INVALID_AMOUNT;
+
             var generatedOrder = generateOrder(
                 msg.anotherVault,
                 msg.anotherOrderOwner,
@@ -227,7 +165,6 @@ fun onInternalMessage(in: InMessage) {
                 contract.getCode(),
                 msg.createdAt
             );
-            var generatedOrderAddress = generatedOrder.calculateAddress();
 
             var matchInternalExchangeInfo = MatchExchangeInfo {
                 amount: msg.amount,
@@ -245,16 +182,18 @@ fun onInternalMessage(in: InMessage) {
             };
 
             storage.sendInternalMatchOrder(
-                generatedOrderAddress,
+                generatedOrder.calculateAddress(),
                 bodyInternalMatchOrder.toCell(),
                 0,
                 SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE
             );
+
             exchangeInfo.amount -= msg.amount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
             return;
         }
+
         InternalMatchOrder => {
             var exchangeInfo = storage.exchangeInfo.load();
             var anotherOrder = generateOrder(
@@ -265,18 +204,23 @@ fun onInternalMessage(in: InMessage) {
                 contract.getCode(),
                 msg.createdAt
             );
-            var generatedAnotherOrderAddress = anotherOrder.calculateAddress();
-            assert(in.senderAddress == generatedAnotherOrderAddress) throw ERR_INVALID_SENDER;
+            assert(in.senderAddress == anotherOrder.calculateAddress()) throw ERR_INVALID_SENDER;
+
             var matchExchangeInfo = msg.matchExchangeInfo.load();
             var matchFeeInfo = matchExchangeInfo.feeInfo.load();
             var feeInfo = storage.feeInfo!.load();
-            val matchExchangeInfo_priceRate_withFee  = matchExchangeInfo.priceRate + (mulDivFloor(matchExchangeInfo.priceRate, matchFeeInfo.feeNum, matchFeeInfo.feeDenom) + mulDivFloor(matchExchangeInfo.priceRate, matchFeeInfo.matcherFeeNum, matchFeeInfo.matcherFeeDenom));
-            val exchangeInfo_priceRate_withFee  = exchangeInfo.priceRate + (mulDivFloor(exchangeInfo.priceRate, feeInfo.feeNum, feeInfo.feeDenom) + mulDivFloor(exchangeInfo.priceRate, feeInfo.matcherFeeNum, feeInfo.matcherFeeDenom));
 
-            val (compareSlippage, lower) = compareWithSlippage(matchExchangeInfo_priceRate_withFee, exchangeInfo.priceRate, exchangeInfo.slippage);
-            val (anotherCompareSlippage, anotherLower) = compareWithSlippage(exchangeInfo_priceRate_withFee, matchExchangeInfo.priceRate, matchExchangeInfo.slippage);
-            assert ((exchangeInfo.amount > 0) && (compareSlippage == 0) && (anotherCompareSlippage == 0)) throw ERR_INVALID_SLIPPAGE;
-            
+            // Simplified fee rate calculations
+            val matchRate = addFeesToRate(matchExchangeInfo.priceRate, matchFeeInfo);
+            val myRate = addFeesToRate(exchangeInfo.priceRate, feeInfo);
+
+            // Simplified slippage validation
+            assert(
+                (exchangeInfo.amount > 0) &&
+                isWithinSlippage(matchRate, exchangeInfo.priceRate, exchangeInfo.slippage) &&
+                isWithinSlippage(myRate, matchExchangeInfo.priceRate, matchExchangeInfo.slippage)
+            ) throw ERR_INVALID_SLIPPAGE;
+
             var anotherGetAmount = mulDivFloor(matchExchangeInfo.amount, matchExchangeInfo.priceRate, ton("1"));
             if (anotherGetAmount > exchangeInfo.amount) {
                 anotherGetAmount = exchangeInfo.amount;
@@ -289,7 +233,6 @@ fun onInternalMessage(in: InMessage) {
                 reserveToncoinsOnBalance(GAS_STORAGE, 0);
             }
 
-            // send success match to order
             storage.sendSuccessMatch(
                 in.valueCoins / 2,
                 in.senderAddress,
@@ -299,7 +242,6 @@ fun onInternalMessage(in: InMessage) {
                 0,
             );
 
-            // send vault transfer jetton
             storage.sendVaultTransferJetton(
                 0,
                 anotherGetAmount,
@@ -315,6 +257,7 @@ fun onInternalMessage(in: InMessage) {
             storage.save();
             return;
         }
+
         SuccessMatch => {
             var exchangeInfo = storage.exchangeInfo.load();
             var anotherOrder = generateOrder(
@@ -325,15 +268,17 @@ fun onInternalMessage(in: InMessage) {
                 contract.getCode(),
                 msg.anotherOrderCreatedAt
             );
-            var generatedAnotherOrderAddress = anotherOrder.calculateAddress();
-            assert(in.senderAddress == generatedAnotherOrderAddress) throw ERR_INVALID_SENDER;
+            assert(in.senderAddress == anotherOrder.calculateAddress()) throw ERR_INVALID_SENDER;
+
             var matchExchangeInfo = msg.matchExchangeInfo.load();
             val increaseAmount = matchExchangeInfo.startAmount - matchExchangeInfo.amount;
+
             if ((increaseAmount == 0) && (exchangeInfo.amount == 0)) {
                 reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             } else {
                 reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             }
+
             storage.sendVaultTransferJetton(
                 0,
                 matchExchangeInfo.amount,
@@ -343,39 +288,47 @@ fun onInternalMessage(in: InMessage) {
                 msg.matcher,
                 SEND_MODE_CARRY_ALL_BALANCE,
             );
+
             exchangeInfo.amount += increaseAmount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
             return;
         }
+
         CloseOrder => {
             assert(in.senderAddress == storage.owner) throw ERR_INVALID_SENDER;
             assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
+
             var exchangeInfo = storage.exchangeInfo.load();
             reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+
             storage.sendVaultCloseOrder(
                 exchangeInfo.amount,
                 0,
                 exchangeInfo.to,
                 SEND_MODE_CARRY_ALL_BALANCE,
             );
+
             exchangeInfo.amount = 0;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
             return;
         }
+
         InitOrder => {
             assert(in.senderAddress == storage.vault) throw ERR_INVALID_SENDER;
             assert(in.valueCoins >= GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
+
             var exchangeInfo = storage.exchangeInfo.load();
             assert(exchangeInfo.amount == 0) throw ERR_ORDER_ALREADY_INITIALIZED;
+
             exchangeInfo.amount = msg.amount;
             exchangeInfo.priceRate = msg.priceRate;
             exchangeInfo.slippage = msg.slippage;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.feeInfo = msg.feeInfo;
             storage.save();
-            return; 
+            return;
         }
     }
 }
@@ -386,6 +339,7 @@ fun onBouncedMessage(in: InMessageBounced) {
     var storage = lazy Storage.fromCell(contract.getData());
     val richBounceMessage = lazy RichBounceBody.fromSlice(in.bouncedBody);
     var msg = lazy BouncedMessage.fromCell(richBounceMessage.originalBody);
+
     match (msg) {
         InternalMatchOrder => {
             var msgExchangeInfo = msg.matchExchangeInfo.load();
@@ -393,8 +347,10 @@ fun onBouncedMessage(in: InMessageBounced) {
             storageExchangeInfo.amount += msgExchangeInfo.amount;
             storage.exchangeInfo = storageExchangeInfo.toCell();
             storage.save();
-            simpleMessage(msg.matcher, 0, beginCell().storeUint(OP_CODE_RETURN_MATCHER_FAILED, 32).endCell(), SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
-            return;   
+
+            var body = beginCell().storeUint(OP_CODE_RETURN_MATCHER_FAILED, 32).endCell();
+            sendSimpleMessage(msg.matcher, 0, body, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
+            return;
         }
     }
     return;
@@ -402,6 +358,5 @@ fun onBouncedMessage(in: InMessageBounced) {
 
 get fun getData(): (address, address, cell, uint32) {
     var storage = lazy Storage.fromCell(contract.getData());
-
     return (storage.owner, storage.vault, storage.exchangeInfo, storage.createdAt);
 }
