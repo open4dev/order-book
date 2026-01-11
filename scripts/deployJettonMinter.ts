@@ -1,26 +1,36 @@
-import { NetworkProvider } from '@ton/blueprint';
-import { JettonMinter, jettonMinterCodeCell, createJettonOnChainContent } from '../wrappers/JettonMinter';
+import { toNano } from '@ton/core';
+import { JettonMinter, jettonMinterCodeCell } from '../wrappers/JettonMinter';
+import { compile, NetworkProvider } from '@ton/blueprint';
 import { jettonWalletCodeCell } from '../wrappers/JettonWallet';
-import { Gas } from './config';
 
 export async function run(provider: NetworkProvider) {
-    const jettonContent = await createJettonOnChainContent({
-        name: 'Test Jetton',
-        symbol: 'TEST',
-        decimals: 9,
-        description: 'Test Jetton for Order Book'
-    });
-
-    const jettonMinter = provider.open(
+    const jettonMinterFrom = provider.open(
         JettonMinter.createFromConfig({
             admin: provider.sender().address!,
             wallet_code: jettonWalletCodeCell,
-            jetton_content: jettonContent
+            jetton_content: {
+                uri: 'from'
+            }
         }, jettonMinterCodeCell)
-    );
+    )
 
-    await jettonMinter.sendDeploy(provider.sender(), Gas.VAULT_DEPLOY);
-    await provider.waitForDeploy(jettonMinter.address);
+    await jettonMinterFrom.sendDeploy(provider.sender(), toNano('0.05'));
 
-    console.log('JettonMinter deployed at:', jettonMinter.address.toString());
+    await provider.waitForDeploy(jettonMinterFrom.address);
+
+    // const jettonMinterTo = provider.open(
+    //     JettonMinter.createFromConfig({
+    //         admin: provider.sender().address!,
+    //         wallet_code: jettonWalletCodeCell,
+    //         jetton_content: {
+    //             uri: 'to'
+    //         }
+    //     }, jettonMinterCodeCell)
+    // )
+
+    // await jettonMinterTo.sendDeploy(provider.sender(), toNano('0.05'));
+
+    // await provider.waitForDeploy(jettonMinterTo.address);
+
+    // run methods on `vaultFactory`
 }
