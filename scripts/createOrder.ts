@@ -3,13 +3,15 @@ import { VaultFactory } from '../wrappers/VaultFactory';
 import { compile, NetworkProvider, sleep } from '@ton/blueprint';
 import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
 import { Vault } from '../wrappers/Vault';
+import { VaultTon } from '../wrappers/VaultTon';
+import { GAS_CREATE_ORDER_JETTON, GAS_CREATE_ORDER_TON } from '../tests/Helper';
 
 export async function run(provider: NetworkProvider) {
     // FOR JETTONS
     // const jettonWallet = provider.open(JettonWallet.createFromAddress(Address.parse("ADDRESS_HERE")));
     // await jettonWallet.sendCreateOrder(
     //     provider.sender(),
-    //     toNano(0.15 + 0.01 + 0.00206 + 0.007084 + 0.003278),
+    //     toNano(0.15 + 0.01 + 0.04 + 0.006884 + 0.003078),
     //     {
     //         jettonAmount: toNano(NUMBER),
     //         vault: Address.parse("ADDRESS_HERE"),
@@ -17,7 +19,7 @@ export async function run(provider: NetworkProvider) {
     //         priceRate: toNano(NUMBER),
     //         slippage: toNano(NUMBER), // default slippage is 2%
     //         toJettonMinter: Address.parse("ADDRESS_HERE"),
-    //         forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
+    //         forwardTonAmount: toNano(0.01 + 0.04 + 0.006884 + 0.003078),
     //         providerFee: provider.sender().address!,
     //         feeNum: NUMBER, // uint14
     //         feeDenom: NUMBER, // uint14
@@ -27,23 +29,24 @@ export async function run(provider: NetworkProvider) {
     // )
 
 
-    // const jettonWalletNOT = provider.open(JettonWallet.createFromAddress(Address.parse("EQAA6dgNLns8qD9nwG6L1cz7YdZjxXhG_khoY3L0K65P4NQz")));
+    // const jettonWalletNOT = provider.open(JettonWallet.createFromAddress(Address.parse("EQAuEPbIhjYLNBoZbg6bnavSAnVea2vrtUOlz3q27nxxGdfB")));
     // await jettonWalletNOT.sendCreateOrder(
     //     provider.sender(),
-    //     toNano(0.15 + 0.01 + 0.00206 + 0.007084 + 0.003278),
+    //     toNano(0.1) + GAS_CREATE_ORDER_JETTON,
     //     {
-    //         jettonAmount: toNano(1),
-    //         vault: Address.parse("EQA8yOYAcTFc_PlaZqgVl8T0E3_493hzSgD2GXgQEj4bS_In"),
+    //         jettonAmount: toNano(0.2),
+    //         vault: Address.parse("0:c68b949f23f40ef685bf3153524c5f9600bfd6cc64ba1b30cbf7f35db24a22de"),
     //         owner: provider.sender().address!,
     //         priceRate: toNano(0.1),
     //         slippage: toNano(0.02), // default slippage is 2%
-    //         toJettonMinter: Address.parse("EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD"),
-    //         forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
+    //         toJettonMinter: null,
+    //         forwardTonAmount: GAS_CREATE_ORDER_JETTON,
     //         providerFee: provider.sender().address!,
     //         feeNum: 1, // uint14
     //         feeDenom: 1000, // uint14
     //         matcherFeeNum: 1, // uint14
     //         matcherFeeDenom: 1000, // uint14
+    //         createdAt: Math.round(Number(new Date().getTime() / 1000)),
     //     }
     // )
 
@@ -51,7 +54,7 @@ export async function run(provider: NetworkProvider) {
     // const jettonWalletBUILD = provider.open(JettonWallet.createFromAddress(Address.parse("EQASOdIumhULjDuW74Q_7yFD6pWa5hAbSawQ1c1wV6l9Pwj9")));
     // await jettonWalletBUILD.sendCreateOrder(
     //     provider.sender(),
-    //     toNano(0.15 + 0.01 + 0.00206 + 0.007084 + 0.003278),
+    //     toNano(0.15 + 0.01 + 0.04 + 0.006884 + 0.003078),
     //     {
     //         jettonAmount: toNano(0.05),
     //         vault: Address.parse("EQD45c5VAClGgnUJAiGzGcgnC6MpJ73wynLkUykgtp2QouJ6"),
@@ -59,7 +62,7 @@ export async function run(provider: NetworkProvider) {
     //         priceRate: toNano(10),
     //         slippage: toNano(0.02), // default slippage is 2%
     //         toJettonMinter: Address.parse("EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT"),
-    //         forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
+    //         forwardTonAmount: toNano(0.01 + 0.04 + 0.006884 + 0.003078),
     //         providerFee: provider.sender().address!,
     //         feeNum: 1, // uint14
     //         feeDenom: 1000, // uint14
@@ -69,48 +72,40 @@ export async function run(provider: NetworkProvider) {
     // )
 
 
-    const jettonWalletNOT = provider.open(JettonWallet.createFromAddress(Address.parse("EQAA6dgNLns8qD9nwG6L1cz7YdZjxXhG_khoY3L0K65P4NQz")));
-    await jettonWalletNOT.sendCreateOrder(
-        provider.sender(),
-        toNano(0.15 + 0.01 + 0.00206 + 0.007084 + 0.003278),
-        {
-            jettonAmount: toNano(0.5),
-            vault: Address.parse("EQA8yOYAcTFc_PlaZqgVl8T0E3_493hzSgD2GXgQEj4bS_In"),
-            owner: provider.sender().address!,
-            priceRate: toNano(0.1),
-            slippage: toNano(0.02), // default slippage is 2%
-            toJettonMinter: Address.parse("EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD"),
-            forwardTonAmount: toNano(0.01 + 0.00206 + 0.007084 + 0.003278),
-            providerFee: provider.sender().address!,
-            feeNum: 1, // uint14
-            feeDenom: 1000, // uint14
-            matcherFeeNum: 1, // uint14
-            matcherFeeDenom: 1000, // uint14
-        }
-    )
+    // const jettonWalletNOT = provider.open(JettonWallet.createFromAddress(Address.parse("EQAA6dgNLns8qD9nwG6L1cz7YdZjxXhG_khoY3L0K65P4NQz")));
+    // await jettonWalletNOT.sendCreateOrder(
+    //     provider.sender(),
+    //     toNano(0.15 + 0.01 + 0.04 + 0.006884 + 0.003078),
+    //     {
+    //         jettonAmount: toNano(0.5),
+    //         vault: Address.parse("EQA8yOYAcTFc_PlaZqgVl8T0E3_493hzSgD2GXgQEj4bS_In"),
+    //         owner: provider.sender().address!,
+    //         priceRate: toNano(0.1),
+    //         slippage: toNano(0.02), // default slippage is 2%
+    //         toJettonMinter: Address.parse("EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD"),
+    //         forwardTonAmount: toNano(0.01 + 0.04 + 0.006884 + 0.003078),
+    //         providerFee: provider.sender().address!,
+    //         feeNum: 1, // uint14
+    //         feeDenom: 1000, // uint14
+    //         matcherFeeNum: 1, // uint14
+    //         matcherFeeDenom: 1000, // uint14
+    //     }
+    // )
 
     
 
     // FOR TON
-    // const vaultTo = provider.open(Vault.createFromAddress(Address.parse("ADDRESS_HERE")));
-    // await vaultTo.sendCreateOrder(provider.sender(), toNano(amount + ), {
-    //     amount: toNano(NUMBER),
-    //     priceRate: toNano(NUMBER),
-    //     slippage: toNano(NUMBER), // default slippage is 2%
-    //     toJettonMinter: Address.parse("ADDRESS_HERE"),
-    // })
-
-
-    // const vaultTo = provider.open(Vault.createFromAddress(Address.parse("EQC5x_lgkWNW3G3A3bh3pz9fkFXF0VZLqkx-gGOgwRm9LBoX")));
-    // await vaultTo.sendCreateOrder(provider.sender(), toNano(0.05 + 0.01 + 0.00186 + 0.006886), {
-    //     amount: toNano(0.05),
-    //     priceRate: toNano(10),
-    //     slippage: toNano(0.02), // default slippage is 2%
-    //     toJettonMinter: Address.parse("EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT"),
-    //     providerFee: provider.sender().address!,
-    //     feeNum: 1, // uint14
-    //     feeDenom: 1000, // uint14
-    //     matcherFeeNum: 1, // uint14
-    //     matcherFeeDenom: 1000, // uint14
-    // })
+    const vaultTo = provider.open(Vault.createFromAddress(Address.parse("0:f4010d8778a854e38e6f67c6a173a850c231b82a5d02df28ffe64039a3906b23")));
+    await vaultTo.sendCreateOrder(provider.sender(), toNano(0.02) + GAS_CREATE_ORDER_TON, {
+        amount: toNano(0.02),
+        priceRate: toNano(10),
+        slippage: toNano(0.02), // default slippage is 2%
+        toJettonMinter: Address.parse("0:2f956143c461769579baef2e32cc2d7bc18283f40d20bb03e432cd603ac33ffc"),
+        providerFee: provider.sender().address!,
+        feeNum: 1, // uint14
+        feeDenom: 1000, // uint14
+        matcherFeeNum: 1, // uint14
+        matcherFeeDenom: 1000, // uint14
+        createdAt: Math.round(Number(new Date().getTime() / 1000)),
+    })
 }

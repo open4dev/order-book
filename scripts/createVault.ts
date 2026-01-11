@@ -2,6 +2,7 @@ import { Address, Cell, toNano } from '@ton/core';
 import { VaultFactory } from '../wrappers/VaultFactory';
 import { compile, NetworkProvider, sleep } from '@ton/blueprint';
 import { jettonWalletCodeCell } from '../wrappers/JettonWallet';
+import { GAS_STORAGE, GAS_VAULT_FACTORY_CREATE_VAULT, GAS_VAULT_INIT } from '../tests/Helper';
 
 export async function run(provider: NetworkProvider) {
 
@@ -16,41 +17,41 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: NOT
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBpSaQ_O01PaQ2upvTZdjyJiisZqbDBSQQ5J6I3GLD-pwMv")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
-    //     toNano(0.018176 + 0.000538 + 0.01),
+    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
     //     Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395"),
     //     Address.parse("EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT")
     // );
 
     // JETTON: BUILD
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBpSaQ_O01PaQ2upvTZdjyJiisZqbDBSQQ5J6I3GLD-pwMv")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
-    //     toNano(0.018176 + 0.000538 + 0.01),
+    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
     //     Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395"),
     //     Address.parse("EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD")
     // );
 
     // JETTON: USDT
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBpSaQ_O01PaQ2upvTZdjyJiisZqbDBSQQ5J6I3GLD-pwMv")));
-    // await vaultFactory.sendCreateVault(
-    //     provider.sender(),
-    //     toNano(0.018176 + 0.000538 + 0.01),
-    //     Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
-    //     Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
-    // )
+    const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
+    await vaultFactory.sendCreateVault(
+        provider.sender(),
+        GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
+        Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
+        Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
+    )
 
     // sleep(10000);
     // JETTON: TON
-    const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQB5xR__XIv9NcKoTBvgEQ2-3oTsuaWyxbPkdFiChhCzBIoC")));
-    await vaultFactory.sendCreateVault(
-        provider.sender(),
-        toNano(0.018176 + 0.000538 + 0.01),
-        null,
-        null,
-    );
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBfMTQWF3ef7ouYU1_2yNlEN85_2B-tHqTUaQ-LCnlih6yg")));
+    // await vaultFactory.sendCreateVault(
+    //     provider.sender(),
+    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
+    //     null,
+    //     null,
+    // );
 
     
     // run methods on `vaultFactory`
@@ -60,14 +61,14 @@ export async function run(provider: NetworkProvider) {
     // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("kQDpsmulKqyfzNIA5GZrtVdmzTyE5DJ0UQlkGsOz8p9sMQle")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
-    //     toNano(0.018176 + 0.000538 + 0.01),
+    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
     //     jettonWalletCodeCell,
     //     Address.parse("kQC17piG0E7U00zd8DoC_u4wCsEAiJzxJc1kz6PtlUf0YWDM"),
     // );
     // await sleep(3000) // 3 second
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
-    //     toNano(0.018176 + 0.000538 + 0.01),
+    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
     //     jettonWalletCodeCell,
     //     Address.parse("0QDdNZ--mIi-6zMbT-DpqsDz_XVWkI34aMVa2-N-lU0g8CuQ"),
     // );
