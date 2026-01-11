@@ -1,23 +1,18 @@
 import { Address, toNano } from '@ton/core';
-import { VaultFactory } from '../wrappers/VaultFactory';
-import { compile, NetworkProvider, sleep } from '@ton/blueprint';
-import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
-import { Vault } from '../wrappers/Vault';
+import { NetworkProvider } from '@ton/blueprint';
 import { Order } from '../wrappers/Order';
-
+import { Gas } from './config';
 
 export async function run(provider: NetworkProvider) {
-    const order = provider.open(Order.createFromAddress(Address.parse("EQA-DuarS2dFzRM7khypkfyUI8S5QojouNX28HE3LgovO-rp")));
+    // Your order address
+    const orderAddress = Address.parse("YOUR_ORDER_ADDRESS");
+    const order = provider.open(Order.createFromAddress(orderAddress));
 
-    await order.sendMatchOrder(
-        provider.sender(),
-        toNano(1),
-        {
-            anotherVault: Address.parse("EQA8yOYAcTFc_PlaZqgVl8T0E3_493hzSgD2GXgQEj4bS_In"),
-            anotherOrderOwner: provider.sender().address!,
-            anotherOrder: Address.parse("EQArPkIA1kK33t8uszgZPFG4qVD4uLxlFbPqRSivTu3Spuj9"),
-            createdAt: Number(0x69511c95),
-            amount: toNano(0.025),
-        }
-    )
+    // Match with another order
+    await order.sendMatchOrder(provider.sender(), Gas.MATCH_ORDER, {
+        anotherVault: Address.parse("COUNTERPARTY_VAULT_ADDRESS"),
+        anotherOrderOwner: Address.parse("COUNTERPARTY_ORDER_OWNER"),
+        createdAt: 0, // createdAt timestamp of the counterparty order
+        amount: toNano(1), // Amount to match
+    });
 }

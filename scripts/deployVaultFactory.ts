@@ -1,6 +1,6 @@
-import { toNano } from '@ton/core';
+import { NetworkProvider, compile } from '@ton/blueprint';
 import { VaultFactory } from '../wrappers/VaultFactory';
-import { compile, NetworkProvider } from '@ton/blueprint';
+import { Gas } from './config';
 
 export async function run(provider: NetworkProvider) {
     const vaultFactory = provider.open(VaultFactory.createFromConfig({
@@ -9,9 +9,8 @@ export async function run(provider: NetworkProvider) {
         feeCollectorCode: await compile('FeeCollector'),
     }, await compile('VaultFactory')));
 
-    await vaultFactory.sendDeploy(provider.sender(), toNano(0.000526 + 0.01));
-
+    await vaultFactory.sendDeploy(provider.sender(), Gas.VAULT_FACTORY_DEPLOY);
     await provider.waitForDeploy(vaultFactory.address);
 
-    // run methods on `vaultFactory`
+    console.log('VaultFactory deployed at:', vaultFactory.address.toString());
 }

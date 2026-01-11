@@ -1,18 +1,14 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
+import {
+    VaultFactoryConfig,
+    vaultFactoryConfigToCell,
+    buildInitVaultFactoryBody,
+    buildCreateVaultBody,
+    Opcodes,
+} from './common';
 
-export type VaultFactoryConfig = {
-    vaultCode: Cell;
-    orderCode: Cell;
-    feeCollectorCode: Cell;
-};
-
-export function vaultFactoryConfigToCell(config: VaultFactoryConfig): Cell {
-    return beginCell()
-        .storeRef(config.vaultCode)
-        .storeRef(config.orderCode)
-        .storeRef(config.feeCollectorCode)
-    .endCell()
-}
+// Re-export types for backwards compatibility
+export { VaultFactoryConfig } from './common';
 
 export class VaultFactory implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
@@ -31,9 +27,7 @@ export class VaultFactory implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-            .storeUint(0x81e36595, 32)
-            .endCell(),
+            body: buildInitVaultFactoryBody(),
         });
     }
 
@@ -41,11 +35,7 @@ export class VaultFactory implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell()
-            .storeUint(0x64e90480, 32)
-            .storeMaybeRef(jettonWalletCode ? jettonWalletCode : null)
-            .storeMaybeRef(jettonMaster ? beginCell().storeAddress(jettonMaster).endCell() : null)
-            .endCell(),
+            body: buildCreateVaultBody(jettonWalletCode, jettonMaster),
         });
     }
 
@@ -54,9 +44,9 @@ export class VaultFactory implements Contract {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
-            .storeUint(0xb6cf7f0f, 32)
-            .storeAddress(newOwner)
-            .endCell(),
+                .storeUint(Opcodes.ChangeOwner, 32)
+                .storeAddress(newOwner)
+                .endCell(),
         });
     }
 
