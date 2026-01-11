@@ -130,6 +130,7 @@ export class JettonWallet implements Contract {
         feeDenom: number, // uint14
         matcherFeeNum: number, // uint14
         matcherFeeDenom: number, // uint14
+        createdAt: number,
     }) {
         const forwardPayload = beginCell()
             .storeCoins(params.priceRate)
@@ -144,6 +145,7 @@ export class JettonWallet implements Contract {
                     .storeUint(params.matcherFeeDenom, 14)
                 .endCell()
             )
+            .storeUint(params.createdAt, 32)
             .endCell();
 
         await this.sendTransfer(

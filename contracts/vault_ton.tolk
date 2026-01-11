@@ -1,12 +1,7 @@
 import "utils/generate_addresses"
 import "utils/fees"
-import "utils/jetton_utils"
 import "utils/errors.tolk"
 import "utils/op_codes.tolk"
-
-struct JettonInfo {
-    jettonMinter: address
-}
 
 struct CodesInfo {
     jettonWalletCode: cell?
@@ -17,7 +12,7 @@ struct CodesInfo {
 struct Storage {
     vault_factory: address
     codesInfo: Cell<CodesInfo>
-    fromJetton: Cell<JettonInfo>?
+    fromJetton: cell?
     randomHash: uint256
     amount: coins
 }
@@ -40,14 +35,6 @@ struct VaultJettonTransferAddresses {
     anotherOwnerOrder: address
 }
 
-struct JettonTransferNotificationPayload {
-    priceRate: coins
-    toJetton: Cell<ToJettonInfo>?
-    slippage: uint30
-    feeInfo: Cell<FeeInfo>
-    createdAt: uint32
-}
-
 struct ( 0x12966c79 ) VaultJettonTransfer {
     addresses: Cell<VaultJettonTransferAddresses>
     toJetton: Cell<ToJettonInfo>?
@@ -56,14 +43,16 @@ struct ( 0x12966c79 ) VaultJettonTransfer {
     feeInfo: Cell<FeeInfo>
 }
 
-struct ( 0x7362d09c ) JettonTransferNotification {
-    query_id: uint64
-    amount: coins
-    sender: address
-    forward_payload: Cell<JettonTransferNotificationPayload>?
+struct ( 0x2717c4a2 ) InitVault {
 }
 
-struct ( 0x2717c4a2 ) InitVault {
+struct ( 0xcbcd047e ) TonTransfer {
+    amount: coins,
+    toJetton: Cell<ToJettonInfo>
+    priceRate: coins
+    slippage: uint30
+    feeInfo: Cell<FeeInfo>
+    createdAt: uint32
 }
 
 struct (0xee83652a) WithDraw {
@@ -82,11 +71,11 @@ fun Storage.save(self) {
     contract.setData(self.toCell())
 }
 
-fun Storage.sendCreateOrder(mutate self, fromJetton: cell, toJetton: cell?, owner: address, amount: coins, priceRate: coins, slippage: uint30, feeInfo: Cell<FeeInfo>, value: coins, createdAt: uint32, sendMode: int) {
+fun Storage.sendCreateOrder(mutate self, toJetton: cell, owner: address, amount: coins, priceRate: coins, slippage: uint30, feeInfo: Cell<FeeInfo>, value: coins, createdAt: uint32, sendMode: int) {
     var order: AutoDeployAddress = generateOrder(
         contract.getAddress(),
         owner,
-        fromJetton,
+        null,
         toJetton,
         self.codesInfo.load().orderCode,
         createdAt
@@ -134,44 +123,7 @@ fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
     msg.send(sendMode);
 }
 
-fun calculateJettonWallet(jettonWalletCode: cell, jettonMaster: address, owner: address): AutoDeployAddress {
-    var jettonWalletData: cell = beginCell()
-        .storeUint(0, 4)
-        .storeCoins(0)
-        .storeAddress(owner)
-        .storeAddress(jettonMaster)
-    .endCell();
-
-    //    return begin_cell()
-    // .store_uint(0, 2) ;; 0b00 - No split_depth; No special
-    // .store_maybe_ref(jetton_wallet_code)
-    // .store_maybe_ref(
-    //     pack_jetton_wallet_data(
-    //         0, ;; status
-    //         0, ;; balance
-    //         owner_address,
-    //         jetton_master_address)
-    // )
-    // .store_uint(0, 1) ;; Empty libraries
-    // .end_cell();
-
-    // https://tonviewer.com/EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT?section=code
-
-    var stateInitCell = beginCell()
-        .storeUint(0, 2)
-        .storeMaybeRef(jettonWalletCode)
-        .storeMaybeRef(jettonWalletData)
-        .storeUint(0, 1)
-    .endCell();
-
-    var jettonWallet = AutoDeployAddress {
-        stateInit: stateInitCell
-    };
-
-    return jettonWallet;
-}
-
-type AllowedMessage = VaultJettonTransfer | JettonTransferNotification | InitVault | WithDraw | CloseOrder
+type AllowedMessage = VaultJettonTransfer | InitVault | TonTransfer | WithDraw | CloseOrder
 
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());
@@ -186,7 +138,7 @@ fun onInternalMessage(in: InMessage) {
             var generatedOrder = generateOrder(
                 contract.getAddress(),
                 addresses.orderOwner,
-                storage.fromJetton!,
+                null,
                 msg.toJetton,
                 codesInfo.orderCode,
                 msg.createdAtOrder
@@ -206,31 +158,23 @@ fun onInternalMessage(in: InMessage) {
                 matcherFeeAmount = mulDivFloor(msg.amountTransfer, feeInfo.matcherFeeNum, feeInfo.matcherFeeDenom);
                 transferAmount -= matcherFeeAmount;
             }
+            var bodyRevertToMatcher = beginCell()
+                .storeUint(OP_CODE_WITHDRAW_REVERT, 32)
+            .endCell();
 
-            var jettonWallet = calculateJettonWallet(
-                codesInfo.jettonWalletCode!,
-                storage.fromJetton!.load().jettonMinter,
-                contract.getAddress()
-            );
+            var bodySwap = beginCell()
+                .storeUint(OP_CODE_SWAP, 32)
+            .endCell();
 
-            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
-
+            reserveToncoinsOnBalance(storage.amount - transferAmount + GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             if (matcherFeeAmount > 0) {
-                sendAddMatcherFee(addresses.matcher, matcherFeeAmount, codesInfo.feeCollectorCode, GAS_FEE_COLLECTOR_ADD_FEE, SEND_MODE_PAY_FEES_SEPARATELY);
+                sendAddMatcherFee(addresses.matcher, matcherFeeAmount, codesInfo.feeCollectorCode!, GAS_FEE_COLLECTOR_ADD_FEE, SEND_MODE_PAY_FEES_SEPARATELY);
             }
             if (feeAmount > 0) {
-                sendAddMatcherFee(feeInfo.provider, feeAmount, codesInfo.feeCollectorCode, GAS_FEE_COLLECTOR_ADD_FEE, SEND_MODE_PAY_FEES_SEPARATELY);
+                sendAddMatcherFee(feeInfo.provider, feeAmount, codesInfo.feeCollectorCode!, GAS_FEE_COLLECTOR_ADD_FEE, SEND_MODE_PAY_FEES_SEPARATELY);
             }
-
-            sendJettonTransfer(
-                0,
-                jettonWallet,
-                transferAmount,
-                addresses.anotherOwnerOrder,
-                addresses.matcher,
-                0,
-                SEND_MODE_CARRY_ALL_BALANCE
-            );
+            simpleMessage(addresses.anotherOwnerOrder, transferAmount, bodySwap, SEND_MODE_PAY_FEES_SEPARATELY);
+            simpleMessage(addresses.matcher, 0, bodyRevertToMatcher, SEND_MODE_CARRY_ALL_BALANCE);
             storage.amount -= transferAmount;
             storage.save();
             return;
@@ -241,7 +185,7 @@ fun onInternalMessage(in: InMessage) {
             var generatedOrder = generateOrder(
                 contract.getAddress(),
                 msg.orderOwner,
-                storage.fromJetton!,
+                null,
                 msg.toJetton,
                 codesInfo.orderCode,
                 msg.createdAtOrder
@@ -249,44 +193,24 @@ fun onInternalMessage(in: InMessage) {
             var generatedOrderAddress = generatedOrder.calculateAddress();
             assert(generatedOrderAddress == in.senderAddress) throw ERR_INVALID_SENDER;
             var transferAmount = msg.amountTransfer;
-            var jettonWallet = calculateJettonWallet(
-                codesInfo.jettonWalletCode!,
-                storage.fromJetton!.load().jettonMinter,
-                contract.getAddress()
-            );
-
-            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
-
-            sendJettonTransfer(
-                0,
-                jettonWallet,
-                transferAmount,
-                msg.orderOwner,
-                msg.orderOwner,
-                0,
-                SEND_MODE_CARRY_ALL_BALANCE
-            );
+            var body = beginCell().storeUint(OP_CODE_SWAP, 32).endCell();
+            reserveToncoinsOnBalance(storage.amount - transferAmount + GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+            simpleMessage(msg.orderOwner, transferAmount, body, SEND_MODE_CARRY_ALL_BALANCE);
             storage.amount -= transferAmount;
             storage.save();
             return;
         }
-        JettonTransferNotification => {
-            assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE) throw ERR_INSUFFICIENT_GAS;
-            assert(msg.forward_payload != null) throw ERR_FORWARD_PAYLOAD_REQUIRED;
-            val codesInfo = storage.codesInfo.load();
-            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
-            var generatedJettonWallet = calculateJettonWallet(codesInfo.jettonWalletCode!, storage.fromJetton!.load().jettonMinter, contract.getAddress());
-            val generatedJettonWalletAddress: address = generatedJettonWallet.calculateAddress();
-            assert(generatedJettonWalletAddress == in.senderAddress) throw ERR_INVALID_JETTON_WALLET;
-            var forwardPayload = msg.forward_payload!.load();
-            storage.sendCreateOrder(storage.fromJetton!, forwardPayload.toJetton, msg.sender, msg.amount, forwardPayload.priceRate, forwardPayload.slippage, forwardPayload.feeInfo, 0, forwardPayload.createdAt, SEND_MODE_CARRY_ALL_BALANCE);
+        TonTransfer => {
+            assert(in.valueCoins >= msg.amount + GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_TON_TRANSFER) throw ERR_INSUFFICIENT_GAS;
+            reserveToncoinsOnBalance(storage.amount + msg.amount + GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+            storage.sendCreateOrder(msg.toJetton, in.senderAddress, msg.amount, msg.priceRate, msg.slippage, msg.feeInfo, 0, msg.createdAt, SEND_MODE_CARRY_ALL_BALANCE);
             storage.amount += msg.amount;
             storage.save();
             return;
         }
         InitVault => {
             assert(in.senderAddress == storage.vault_factory) throw ERR_INVALID_SENDER;
-            assert(in.valueCoins >= GAS_STORAGE + GAS_VAULT_INIT) throw ERR_INSUFFICIENT_GAS;
+            assert(in.valueCoins >= GAS_VAULT_INIT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
             return;
         }
         WithDraw => {
@@ -295,13 +219,11 @@ fun onInternalMessage(in: InMessage) {
             var feeCollector = generateFeeCollector(contract.getAddress(), msg.feeAddress, codesInfo.feeCollectorCode);
             var feeCollectorAddress = feeCollector.calculateAddress();
             assert(feeCollectorAddress == in.senderAddress) throw ERR_INVALID_SENDER;
-            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
-            val jettonWallet = calculateJettonWallet(
-                codesInfo.jettonWalletCode!,
-                storage.fromJetton!.load().jettonMinter,
-                contract.getAddress()
-            );
-            sendJettonTransfer(0, jettonWallet, msg.amount, msg.feeAddress, msg.feeAddress, 0, SEND_MODE_CARRY_ALL_BALANCE);
+            reserveToncoinsOnBalance(storage.amount - msg.amount + GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+            val body = beginCell()
+                .storeUint(OP_CODE_VAULT_WITHDRAW_TON, 32)
+            .endCell();
+            simpleMessage(msg.feeAddress, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
             storage.amount -= msg.amount;
             storage.save();
             return;
@@ -312,12 +234,12 @@ fun onInternalMessage(in: InMessage) {
 get fun getData() {
     var storage = lazy Storage.fromCell(contract.getData());
 
-    return (storage.fromJetton, storage.randomHash, storage.vault_factory, storage.amount)
+    return (storage.randomHash, storage.vault_factory, storage.amount)
 }
 
 get fun getCodes() {
     var storage = lazy Storage.fromCell(contract.getData());
     val codesInfo = storage.codesInfo.load();
 
-    return (codesInfo.jettonWalletCode, codesInfo.orderCode, codesInfo.feeCollectorCode)
+    return (codesInfo.orderCode, codesInfo.feeCollectorCode)
 }

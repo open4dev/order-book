@@ -1,11 +1,51 @@
-import { Address } from "@ton/core";
+import { Address, toNano } from "@ton/core";
 import { Blockchain, SendMessageResult } from "@ton/sandbox";
 import { flattenTransaction } from "@ton/test-utils";
 import { JettonWallet } from "../wrappers/JettonWallet";
 import { Vault } from "../wrappers/Vault";
+import { VaultTon } from "../wrappers/VaultTon";
 import { FeeCollector } from "../wrappers/MatcherFeeCollector";
 import { Order } from "../wrappers/Order";
 import { printTransactionFees } from "@ton/sandbox";
+
+
+
+
+
+
+// Gas constants from fees.tolk
+export const GAS_STORAGE = toNano("0.01");
+export const GAS_MIN_ORDER_STORAGE = toNano("0.003");
+
+export const GAS_ORDER_FULL_MATCH = toNano("1"); // 1
+
+export const GAS_JETTON_WALLET_TRANSFER = toNano("0.05"); // 0.004957
+
+export const GAS_VAULT_FACTORY_CREATE_VAULT = toNano("0.018176");        // max 0.018076 + 0.0001
+export const GAS_VAULT_FACTORY_INIT = toNano("0.000526");                // max 0.000426 + 0.0001
+
+export const GAS_VAULT_JETTON_TRANSFER = toNano("0.01883");             // max 0.00873 + 0.0001
+export const GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE = toNano("0.003078");       // max 0.002978 + 0.0001
+export const GAS_VAULT_INIT = toNano("0.000538");                       // max 0.000438 + 0.0001
+export const GAS_VAULT_TON_TRANSFER = toNano("0.016886"); // max 0.01159 + 0.0001
+
+export const GAS_VAULT_WITHDRAW = toNano("0.004154");                   // max 0.004054 + 0.0001
+
+export const GAS_VAULT_CLOSE_ORDER = toNano("0.024676");                 // max 0.004576 + 0.0001
+export const GAS_ORDER_CLOSE_ORDER = toNano("0.002403"); // max 0.002303 + 0.0001
+export const GAS_ORDER_INIT = toNano("0.04");                         // max 0.00176 + 0.0001
+export const GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE = toNano("0.006884");  //      0.006784 + 0.0001
+
+export const GAS_FEE_COLLECTOR_WITHDRAW = toNano("0.001695");            // max 0.001595 + 0.0001
+export const GAS_FEE_COLLECTOR_ADD_FEE = toNano("0.000953");            // max 0.000753 + 0.0001
+// end of gas constants from fees.tolk
+
+export const GAS_CREATE_ORDER_JETTON = GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE;
+export const GAS_CREATE_ORDER_TON = GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_TON_TRANSFER;
+
+
+
+
 
 export function printBlockchainConfig(blockchain: Blockchain) {
     const config = blockchain.config;
@@ -81,6 +121,16 @@ export function getVaultWrapper(blockchain: Blockchain, trs: SendMessageResult) 
         return tx.op == 0x2717c4a2;
     });
     const vault = blockchain.openContract(Vault.createFromAddress(flattenTransaction(vaultDeployTrs!).to!));
+    
+    return vault;
+}
+
+export function getVaultTonWrapper(blockchain: Blockchain, trs: SendMessageResult)  {
+    const vaultDeployTrs = trs.transactions.find((e) => {
+        const tx = flattenTransaction(e);
+        return tx.op == 0x2717c4a2;
+    });
+    const vault = blockchain.openContract(VaultTon.createFromAddress(flattenTransaction(vaultDeployTrs!).to!));
     
     return vault;
 }

@@ -3,6 +3,7 @@ import { Cell, toNano } from '@ton/core';
 import { Vault2 } from '../wrappers/Vault2';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
+import { GAS_STORAGE, GAS_VAULT_INIT } from './Helper';
 
 
 // it is anon jetton wallet code
@@ -48,7 +49,7 @@ describe('Vault2', () => {
         }, code));
 
 
-        const deployResult = await vault2.sendDeploy(mockVaultFactory.getSender(), toNano('0.05'));
+        const deployResult = await vault2.sendDeploy(mockVaultFactory.getSender(), GAS_STORAGE + GAS_VAULT_INIT);
 
         expect(deployResult.transactions).toHaveTransaction({
             from: mockVaultFactory.address,
@@ -61,5 +62,93 @@ describe('Vault2', () => {
     it('should deploy', async () => {
         // the check is done inside beforeEach
         // blockchain and vault2 are ready to use
+    });
+
+    it("VaultJettonTransfer (Vault2) -> Failed with not enough gas", async () => {
+        // TODO: Add test logic for assert(in.valueCoins >= GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw ERR_INSUFFICIENT_GAS;
+    });
+
+    it("VaultJettonTransfer (Vault2) -> Success with enough gas", async () => {
+        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER);
+    });
+
+    it("VaultJettonTransfer (Vault2) -> Failed with invalid sender (not from generated order)", async () => {
+        // TODO: Add test logic for assert(generatedOrderAddress == in.senderAddress) throw ERR_INVALID_SENDER;
+    });
+
+    it("VaultJettonTransfer (Vault2) -> Success with valid sender", async () => {
+        // TODO: Add positive test logic for assert(generatedOrderAddress == in.senderAddress);
+    });
+
+    it("CloseOrder (Vault2) -> Failed with not enough gas", async () => {
+        // TODO: Add test logic for assert(in.valueCoins >= GAS_VAULT_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
+    });
+
+    it("CloseOrder (Vault2) -> Success with enough gas", async () => {
+        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_VAULT_CLOSE_ORDER);
+    });
+
+    it("CloseOrder (Vault2) -> Failed with invalid sender (not from generated order)", async () => {
+        // TODO: Add test logic for assert(generatedOrderAddress == in.senderAddress) throw ERR_INVALID_SENDER;
+    });
+
+    it("CloseOrder (Vault2) -> Success with valid sender", async () => {
+        // TODO: Add positive test logic for assert(generatedOrderAddress == in.senderAddress);
+    });
+
+    it("JettonTransferNotification (Vault2) -> Failed with not enough gas", async () => {
+        // TODO: Add test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE) throw ERR_INSUFFICIENT_GAS;
+    });
+
+    it("JettonTransferNotification (Vault2) -> Success with enough gas", async () => {
+        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE);
+    });
+
+    it("JettonTransferNotification (Vault2) -> Failed with forward_payload == null", async () => {
+        // TODO: Add test logic for assert(msg.forward_payload != null) throw ERR_FORWARD_PAYLOAD_REQUIRED;
+    });
+
+    it("JettonTransferNotification (Vault2) -> Success with forward_payload", async () => {
+        // TODO: Add positive test logic for assert(msg.forward_payload != null);
+    });
+
+    it("JettonTransferNotification (Vault2) -> Failed with invalid jetton wallet", async () => {
+        // TODO: Add test logic for assert(generatedJettonWalletAddress == in.senderAddress) throw ERR_INVALID_JETTON_WALLET;
+    });
+
+    it("JettonTransferNotification (Vault2) -> Success with valid jetton wallet", async () => {
+        // TODO: Add positive test logic for assert(generatedJettonWalletAddress == in.senderAddress);
+    });
+
+    it("InitVault (Vault2) -> Failed with invalid sender (not from vault factory)", async () => {
+        // TODO: Add test logic for assert(in.senderAddress == storage.vault_factory) throw ERR_INVALID_SENDER;
+    });
+
+    it("InitVault (Vault2) -> Success with valid sender", async () => {
+        // TODO: Add positive test logic for assert(in.senderAddress == storage.vault_factory);
+    });
+
+    it("InitVault (Vault2) -> Failed with not enough gas", async () => {
+        // TODO: Add test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_VAULT_INIT) throw ERR_INSUFFICIENT_GAS;
+    });
+
+    it("InitVault (Vault2) -> Success with enough gas", async () => {
+        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_VAULT_INIT);
+    });
+
+    it("WithDraw (Vault2) -> Failed with not enough gas", async () => {
+        // TODO: Add test logic for assert(in.valueCoins >= GAS_VAULT_WITHDRAW) throw ERR_INSUFFICIENT_GAS;
+    });
+
+    it("WithDraw (Vault2) -> Success with enough gas", async () => {
+        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_VAULT_WITHDRAW);
+    });
+
+    it("WithDraw (Vault2) -> Failed with invalid sender (not from fee collector)", async () => {
+        // TODO: Add test logic for assert(feeCollectorAddress == in.senderAddress) throw ERR_INVALID_SENDER;
+    });
+
+    it("WithDraw (Vault2) -> Success with valid sender", async () => {
+        // TODO: Add positive test logic for assert(feeCollectorAddress == in.senderAddress);
     });
 });

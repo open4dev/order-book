@@ -1,4 +1,5 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
+import { randomBytes } from 'crypto';
 
 export type VaultFactoryConfig = {
     vaultCode: Cell;
@@ -37,12 +38,16 @@ export class VaultFactory implements Contract {
         });
     }
 
-    async sendCreateVault(provider: ContractProvider, via: Sender, value: bigint, jettonWalletCode: Cell | null, jettonMaster: Address | null) {
+    async sendCreateVault(provider: ContractProvider, via: Sender, value: bigint, jettonWalletCode: Cell | null, jettonMaster: Address | null, randomHash: bigint | null = null) {
+        if (randomHash == null) {
+            randomHash = BigInt('0x' + randomBytes(32).toString('hex'))
+        }
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x64e90480, 32)
+            .storeUint(randomHash, 256)
             .storeMaybeRef(jettonWalletCode ? jettonWalletCode : null)
             .storeMaybeRef(jettonMaster ? beginCell().storeAddress(jettonMaster).endCell() : null)
             .endCell(),

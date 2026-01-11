@@ -8,18 +8,17 @@ struct Storage {
     amount: coins
 }
 
-fun Storage.save(mutate self) {
-    contract.setData(self.toCell())
-}
-
 struct (0xec9a92f6) WithDraw {}
 
 struct (0xfc7532f4) AddFee {
     amount: coins
 }
 
-type AllowedMessage = WithDraw | AddFee
+fun Storage.save(mutate self) {
+    contract.setData(self.toCell())
+}
 
+type AllowedMessage = WithDraw | AddFee
 
 fun onInternalMessage(in: InMessage) {
     var storage = lazy Storage.fromCell(contract.getData());

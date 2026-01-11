@@ -23,7 +23,6 @@ struct FeeInfo {
     matcherFeeDenom: uint14
 }
 
-
 struct Storage {
     owner: address
     vault: address
@@ -38,7 +37,50 @@ struct VaultJettonTransferAddresses {
     anotherOwnerOrder: address
 }
 
+struct MatchExchangeInfo {
+    amount: coins
+    priceRate: coins
+    slippage: uint30
+    feeInfo: Cell<FeeInfo>
+}
+
+struct SuccessInfo {
+    startAmount: coins
+    amount: coins
+}
+
+struct ( 0x47ff7e25 ) MatchOrder {
+    anotherVault: address
+    anotherOrderOwner: address
+    createdAt: uint32
+    amount: coins
+}
+
+struct ( 0xdfe29f63 ) InternalMatchOrder {
+    anotherVault: address
+    anotherOrderOwner: address
+    matcher: address
+    matchExchangeInfo: Cell<MatchExchangeInfo>
+    createdAt: uint32
+}
+
+struct ( 0x55feb42a ) SuccessMatch {
+    anotherVault: address
+    anotherOrderOwner: address
+    anotherOrderCreatedAt: uint32
+    matcher: address
+    feeInfo: Cell<FeeInfo>
+    matchExchangeInfo: Cell<SuccessInfo>
+}
+
 struct ( 0x52e80bac ) CloseOrder {
+}
+
+struct ( 0x2d0e1e1b ) InitOrder {
+    amount: coins
+    priceRate: coins
+    slippage: uint30
+    feeInfo: Cell<FeeInfo>
 }
 
 struct ( 0xa597947e ) CloseOrderMessageToVault {
@@ -66,7 +108,6 @@ fun simpleMessage(dest: address, value: coins, body: cell, sendMode: int) {
     msg.send(sendMode);
 }
 
-
 // Returns -1 if actual < lower bound (> slippage below reference)
 // Returns 1 if actual > upper bound (> slippage above reference)
 // Returns 0 if within [reference*(1-slippage), reference*(1+slippage)] range
@@ -84,6 +125,9 @@ fun compareWithSlippage(actual: coins, reference: coins, slippage: uint30): (int
     return (0, lower);
 }
 
+fun Storage.save(self) {
+    contract.setData(self.toCell())
+}
 
 fun Storage.sendInternalMatchOrder(mutate self, anotherOrder: address, msgBody: cell, value: coins, sendMode: int) {
     var msg = createMessage({
@@ -117,7 +161,6 @@ fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, to
     msg.send(sendMode);
 }
 
-
 fun Storage.sendVaultCloseOrder(self, amountTransfer: coins, value: coins, toJetton: Cell<JettonInfo>?, sendMode: int) {
     var closeOrder = CloseOrderMessageToVault {
         orderOwner: self.owner,
@@ -133,7 +176,6 @@ fun Storage.sendVaultCloseOrder(self, amountTransfer: coins, value: coins, toJet
     });
     msg.send(sendMode);
 }
-
 
 fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, startAmount: coins, amount: coins, matcher: address, sendMode: int) {
     var successInfo = SuccessInfo {
@@ -156,54 +198,6 @@ fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, s
         .endCell()
     });
     msg.send(sendMode);
-}
-
-fun Storage.save(self) {
-    contract.setData(self.toCell())
-}
-
-
-struct MatchExchangeInfo {
-    amount: coins
-    priceRate: coins
-    slippage: uint30
-    feeInfo: Cell<FeeInfo>
-}
-
-struct ( 0x47ff7e25 ) MatchOrder {
-    anotherVault: address
-    anotherOrderOwner: address
-    createdAt: uint32
-    amount: coins
-}
-
-struct ( 0xdfe29f63 ) InternalMatchOrder {
-    anotherVault: address
-    anotherOrderOwner: address
-    matcher: address
-    matchExchangeInfo: Cell<MatchExchangeInfo>
-    createdAt: uint32
-}
-
-struct ( 0x2d0e1e1b ) InitOrder {
-    amount: coins
-    priceRate: coins
-    slippage: uint30
-    feeInfo: Cell<FeeInfo>
-}
-
-struct SuccessInfo {
-    startAmount: coins
-    amount: coins
-}
-
-struct ( 0x55feb42a ) SuccessMatch {
-    anotherVault: address
-    anotherOrderOwner: address
-    anotherOrderCreatedAt: uint32
-    matcher: address
-    feeInfo: Cell<FeeInfo>
-    matchExchangeInfo: Cell<SuccessInfo>
 }
 
 type AllowedMessage = MatchOrder | InternalMatchOrder | CloseOrder | InitOrder | SuccessMatch
@@ -284,9 +278,9 @@ fun onInternalMessage(in: InMessage) {
             var getAmount = mulDivFloor(anotherGetAmount, ton("1"), matchExchangeInfo.priceRate);
 
             if (anotherGetAmount == exchangeInfo.amount) {
-                reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, 0);
+                reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             } else {
-                reserveToncoinsOnBalance(GAS_STORAGE, 0);
+                reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             }
 
             // send success match to order
@@ -350,14 +344,13 @@ fun onInternalMessage(in: InMessage) {
         }
         CloseOrder => {
             assert(in.senderAddress == storage.owner) throw ERR_INVALID_SENDER;
-            assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
+            assert(in.valueCoins >= GAS_VAULT_CLOSE_ORDER + GAS_ORDER_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
             var exchangeInfo = storage.exchangeInfo.load();
-            reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             storage.sendVaultCloseOrder(
                 exchangeInfo.amount,
                 0,
                 exchangeInfo.to,
-                SEND_MODE_CARRY_ALL_BALANCE,
+                SEND_MODE_CARRY_ALL_BALANCE + SEND_MODE_DESTROY,
             );
             exchangeInfo.amount = 0;
             storage.exchangeInfo = exchangeInfo.toCell();
@@ -366,14 +359,26 @@ fun onInternalMessage(in: InMessage) {
         }
         InitOrder => {
             assert(in.senderAddress == storage.vault) throw ERR_INVALID_SENDER;
-            assert(in.valueCoins >= GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
+            assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT) throw ERR_INSUFFICIENT_GAS;
             var exchangeInfo = storage.exchangeInfo.load();
+            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+            if (exchangeInfo.amount > 0) {
+                storage.sendVaultCloseOrder(
+                    msg.amount,
+                    0,
+                    exchangeInfo.to,
+                    SEND_MODE_CARRY_ALL_BALANCE,
+                );
+                return;
+            }
             assert(exchangeInfo.amount == 0) throw ERR_ORDER_ALREADY_INITIALIZED;
             exchangeInfo.amount = msg.amount;
             exchangeInfo.priceRate = msg.priceRate;
             exchangeInfo.slippage = msg.slippage;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.feeInfo = msg.feeInfo;
+            val body = beginCell().storeUint(0, 32).storeSlice("Order confirmed").endCell();
+            simpleMessage(storage.owner, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
             storage.save();
             return; 
         }
