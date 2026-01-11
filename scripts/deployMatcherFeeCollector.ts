@@ -1,27 +1,13 @@
-import { Address, toNano } from '@ton/core';
-import { NetworkProvider, compile } from '@ton/blueprint';
+import { toNano } from '@ton/core';
 import { FeeCollector } from '../wrappers/MatcherFeeCollector';
-import { Gas } from './config';
+import { compile, NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
-    // Note: FeeCollectors are typically created automatically by the Vault
-    // when fees are accumulated. This script is for testing purposes only.
+    const feeCollector = provider.open(FeeCollector.createFromConfig({}, await compile('FeeCollector')));
 
-    const senderAddress = provider.sender().address!;
+    await feeCollector.sendDeploy(provider.sender(), toNano('0.05'));
 
-    // You need to specify a vault address this fee collector is associated with
-    const vaultAddress = Address.parse("YOUR_VAULT_ADDRESS");
-
-    const feeCollector = provider.open(
-        FeeCollector.createFromConfig({
-            vault: vaultAddress,
-            owner: senderAddress,
-            amount: toNano(0),
-        }, await compile('FeeCollector'))
-    );
-
-    await feeCollector.sendDeploy(provider.sender(), Gas.VAULT_DEPLOY);
     await provider.waitForDeploy(feeCollector.address);
 
-    console.log('FeeCollector deployed at:', feeCollector.address.toString());
+    // run methods on `feeCollector`
 }
