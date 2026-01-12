@@ -151,7 +151,7 @@ export class Vault implements Contract {
 
         
         // struct ( 0x12966c79 ) VaultJettonTransfer {
-        //     addresses: Cell<VaultJettonTransferAddresses>
+        //     addresses: Cell<TransferAddresses>
         //     toJetton: Cell<ToJettonInfo>?
         //     amountTransfer: coins
         //     createdAtOrder: uint32
@@ -167,7 +167,7 @@ export class Vault implements Contract {
         // struct ToJettonInfo {
         //     jettonMinter: address
         // }
-        // struct VaultJettonTransferAddresses {
+        // struct TransferAddresses {
         //     orderOwner: address
         //     matcher: address
         //     anotherOwnerOrder: address

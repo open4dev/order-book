@@ -1,15 +1,13 @@
-import "utils/fees"
+import "utils/fees.tolk"
 import "utils/errors.tolk"
 import "utils/op_codes.tolk"
+import "utils/types.tolk"
+import "utils/messages.tolk"
 
 struct Storage {
     vaultCode: cell
     orderCode: cell
     feeCollectorCode: cell
-}
-
-struct JettonInfo {
-    jettonMinter: address
 }
 
 struct ( 0x64e90480 ) CreateVault { // "CreateVault"c
@@ -72,15 +70,10 @@ fun onInternalMessage(in: InMessage) {
 
             var autoDeployAddress = prepareInitVault(msg.randomHash, storage.orderCode, storage.vaultCode, storage.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
             
-            var reply = createMessage({
-                bounce: BounceMode.NoBounce,
-                dest: autoDeployAddress,
-                value: 0,
-                body: beginCell()
-                    .storeUint(OP_CODE_VAULT_INIT, 32)
-                .endCell()
-            });
-            reply.send(SEND_MODE_CARRY_ALL_BALANCE);
+            var body = beginCell()
+                .storeUint(OP_CODE_VAULT_INIT, 32)
+            .endCell();
+            sendSimpleMessageToAutoDeploy(autoDeployAddress, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
             return;
         }
         InitVaultFactory => {

@@ -35,13 +35,13 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: USDT
-    const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
-    await vaultFactory.sendCreateVault(
-        provider.sender(),
-        GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
-        Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
-        Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
-    )
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
+    // await vaultFactory.sendCreateVault(
+    //     provider.sender(),
+    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
+    //     Cell.fromHex("b5ee9c72010101010023000842028f452d7a4dfd74066b682365177259ed05734435be76b5fd4bd5d8af2b7c3d68"),
+    //     Address.parse("0:b113a994b5024a16719f69139328eb759596c38a25f59028b146fecdc3621dfe")
+    // )
 
     // sleep(10000);
     // JETTON: TON
