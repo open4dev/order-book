@@ -17,16 +17,16 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: NOT
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
-    // await vaultFactory.sendCreateVault(
-    //     provider.sender(),
-    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
-    //     Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395"),
-    //     Address.parse("EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT")
-    // );
+    const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQC4r2_owD_50ltpwYesdk_vadzPBy-b1JpDDcXjCkJv0hqk")));
+    await vaultFactory.sendCreateVault(
+        provider.sender(),
+        GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
+        Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395"),
+        Address.parse("EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT")
+    );
 
     // JETTON: BUILD
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQC4r2_owD_50ltpwYesdk_vadzPBy-b1JpDDcXjCkJv0hqk")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
@@ -35,7 +35,7 @@ export async function run(provider: NetworkProvider) {
     // );
 
     // JETTON: USDT
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQDbZoKMJURT5nGNGI5hOoah8zE0oHieeLTg7tOCClmNkzFp")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQC4r2_owD_50ltpwYesdk_vadzPBy-b1JpDDcXjCkJv0hqk")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
@@ -45,7 +45,7 @@ export async function run(provider: NetworkProvider) {
 
     // sleep(10000);
     // JETTON: TON
-    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQBfMTQWF3ef7ouYU1_2yNlEN85_2B-tHqTUaQ-LCnlih6yg")));
+    // const vaultFactory = provider.open(VaultFactory.createFromAddress(Address.parse("EQAwBHR-9C1nINC-9hh2j4qpwnXyB3mh6TpXTelqGHAVZ3z0")));
     // await vaultFactory.sendCreateVault(
     //     provider.sender(),
     //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE,
