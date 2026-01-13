@@ -95,3 +95,11 @@ fun sendFeeToProvider(
 ) {
     sendFeeToCollector(vault, provider, amount, feeCollectorCode, value, sendMode);
 }
+
+// Generate body with comment
+fun generateBodyWithComment(comment: slice) {
+    return beginCell()
+        .storeUint(0, 32)
+        .storeSlice(comment)
+    .endCell();
+}

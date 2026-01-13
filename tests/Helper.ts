@@ -21,27 +21,24 @@ export const GAS_ORDER_FULL_MATCH = toNano("1"); // 1
 
 export const GAS_JETTON_WALLET_TRANSFER = toNano("0.05"); // 0.004957
 
-export const GAS_VAULT_FACTORY_CREATE_VAULT = toNano("0.018176");        // max 0.018076 + 0.0001
-export const GAS_VAULT_FACTORY_INIT = toNano("0.000526");                // max 0.000426 + 0.0001
+export const GAS_VAULT_FACTORY_CREATE_VAULT = toNano("0.03");
+export const GAS_VAULT_FACTORY_INIT = toNano("0.01");
 
-export const GAS_VAULT_JETTON_TRANSFER = toNano("0.01883");             // max 0.00873 + 0.0001
-export const GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE = toNano("0.003078");       // max 0.002978 + 0.0001
-export const GAS_VAULT_INIT = toNano("0.000538");                       // max 0.000438 + 0.0001
-export const GAS_VAULT_TON_TRANSFER = toNano("0.016886"); // max 0.01159 + 0.0001
+export const GAS_VAULT_TON_TRANSFER = toNano("0.1");
 
-export const GAS_VAULT_WITHDRAW = toNano("0.004154");                   // max 0.004054 + 0.0001
+export const GAS_ORDER_CLOSE_ORDER = toNano("0.05");
+export const GAS_ORDER_INIT = toNano("0.04");
+export const GAS_VAULT_JETTON_TRANSFER_NOTIFICATION = toNano("0.1");
 
-export const GAS_VAULT_CLOSE_ORDER = toNano("0.024676");                 // max 0.004576 + 0.0001
-export const GAS_ORDER_CLOSE_ORDER = toNano("0.002403"); // max 0.002303 + 0.0001
-export const GAS_ORDER_INIT = toNano("0.04");                         // max 0.00176 + 0.0001
-export const GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE = toNano("0.006884");  //      0.006784 + 0.0001
-
-export const GAS_FEE_COLLECTOR_WITHDRAW = toNano("0.001695");            // max 0.001595 + 0.0001
-export const GAS_FEE_COLLECTOR_ADD_FEE = toNano("0.000953");            // max 0.000753 + 0.0001
+export const GAS_FEE_COLLECTOR_WITHDRAW = toNano("0.05");
+export const GAS_FEE_COLLECTOR_ADD_FEE = toNano("0.001");
 // end of gas constants from fees.tolk
 
-export const GAS_CREATE_ORDER_JETTON = GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE;
+export const GAS_CREATE_ORDER_JETTON = GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION;
 export const GAS_CREATE_ORDER_TON = GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_TON_TRANSFER;
+
+// Gas excess for testing - always send more, but return excess
+export const GAS_EXCESS = toNano("0.01");
 
 
 

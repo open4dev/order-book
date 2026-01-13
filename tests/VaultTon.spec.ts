@@ -3,7 +3,7 @@ import { Cell, toNano } from '@ton/core';
 import { VaultTon } from '../wrappers/VaultTon';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
-import { GAS_CREATE_ORDER_TON, GAS_STORAGE, GAS_VAULT_INIT } from './Helper';
+import { GAS_CREATE_ORDER_TON, GAS_EXCESS, GAS_STORAGE } from './Helper';
 import { randomAddress } from '@ton/test-utils';
 
 describe('VaultTon', () => {
@@ -38,7 +38,7 @@ describe('VaultTon', () => {
         }, code));
 
 
-        const deployResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_VAULT_INIT);
+        const deployResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
 
         expect(deployResult.transactions).toHaveTransaction({
             from: mockVaultFactory.address,

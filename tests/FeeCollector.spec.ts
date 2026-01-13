@@ -3,7 +3,7 @@ import { Cell, toNano } from '@ton/core';
 import { FeeCollector } from '../wrappers/MatcherFeeCollector';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
-import { GAS_FEE_COLLECTOR_ADD_FEE, GAS_FEE_COLLECTOR_WITHDRAW, GAS_JETTON_WALLET_TRANSFER, GAS_VAULT_JETTON_TRANSFER } from './Helper';
+import { GAS_EXCESS, GAS_FEE_COLLECTOR_ADD_FEE, GAS_FEE_COLLECTOR_WITHDRAW, GAS_JETTON_WALLET_TRANSFER } from './Helper';
 
 describe('FeeCollector', () => {
     let code: Cell;
@@ -31,7 +31,7 @@ describe('FeeCollector', () => {
         }, code));
 
 
-        const deployResult = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(0));
+        const deployResult = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(0));
 
         expect(deployResult.transactions).toHaveTransaction({
             from: deployer.address,
@@ -44,7 +44,7 @@ describe('FeeCollector', () => {
     it('Success AddFee', async () => {
         const dataBefore = await feeCollector.getData();
         expect(dataBefore.amount).toEqual(toNano(0));
-        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(100));
+        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(100));
         expect(resAddFee.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
@@ -55,7 +55,7 @@ describe('FeeCollector', () => {
     });
 
     it("Error AddFee not from vault", async () => {
-        const resAddFee = await feeCollector.sendAddFee(user1.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(100));
+        const resAddFee = await feeCollector.sendAddFee(user1.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(100));
         expect(resAddFee.transactions).toHaveTransaction({
             from: user1.address,
             to: feeCollector.address,
@@ -67,7 +67,7 @@ describe('FeeCollector', () => {
     it('Success multiple AddFee', async () => {
         const dataBefore = await feeCollector.getData();
         expect(dataBefore.amount).toEqual(toNano(0));
-        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(100));
+        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(100));
         expect(resAddFee.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
@@ -75,7 +75,7 @@ describe('FeeCollector', () => {
         });
         const dataAfter = await feeCollector.getData();
         expect(dataAfter.amount).toEqual(toNano(100));
-        const resAddFee2 = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(200));
+        const resAddFee2 = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(200));
         expect(resAddFee2.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
@@ -86,7 +86,7 @@ describe('FeeCollector', () => {
     });
 
     it("Error AddFee not enough gas", async () => {
-        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE - toNano(0.0001), toNano(100));
+        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE - toNano(0.0005), toNano(100));
         expect(resAddFee.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
@@ -100,14 +100,14 @@ describe('FeeCollector', () => {
     it("Success WithDraw", async () => {
         const dataBefore = await feeCollector.getData();
         expect(dataBefore.amount).toEqual(toNano(0));
-        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(100));
+        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(100));
         // printTransactionFees(resAddFee.transactions);
         expect(resAddFee.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
             success: true,
         });
-        const resWithDraw = await feeCollector.sendWithDraw(user1.getSender(), GAS_FEE_COLLECTOR_WITHDRAW + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER);
+        const resWithDraw = await feeCollector.sendWithDraw(user1.getSender(), GAS_FEE_COLLECTOR_WITHDRAW + GAS_JETTON_WALLET_TRANSFER + GAS_EXCESS);
         // printTransactionFees(resWithDraw.transactions);
         expect(resWithDraw.transactions).toHaveTransaction({
             from: user1.address,
@@ -119,7 +119,7 @@ describe('FeeCollector', () => {
     });
 
     it("Error WithDraw not from owner", async () => {
-        const resWithDraw = await feeCollector.sendWithDraw(user2.getSender(), GAS_FEE_COLLECTOR_WITHDRAW + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER);
+        const resWithDraw = await feeCollector.sendWithDraw(user2.getSender(), GAS_FEE_COLLECTOR_WITHDRAW + GAS_JETTON_WALLET_TRANSFER + GAS_EXCESS);
         expect(resWithDraw.transactions).toHaveTransaction({
             from: user2.address,
             to: feeCollector.address,
@@ -129,7 +129,7 @@ describe('FeeCollector', () => {
     });
 
     it("Error WithDraw not enough gas", async () => {
-        const resWithDraw = await feeCollector.sendWithDraw(user1.getSender(), GAS_FEE_COLLECTOR_WITHDRAW + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER - toNano(0.0001));
+        const resWithDraw = await feeCollector.sendWithDraw(user1.getSender(), GAS_FEE_COLLECTOR_WITHDRAW - toNano(0.01));
         expect(resWithDraw.transactions).toHaveTransaction({
             from: user1.address,
             to: feeCollector.address,
@@ -141,13 +141,13 @@ describe('FeeCollector', () => {
     it("Success WithDraw partial amount", async () => {
         const dataBefore = await feeCollector.getData();
         expect(dataBefore.amount).toEqual(toNano(0));
-        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(100));
+        const resAddFee = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(100));
         expect(resAddFee.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
             success: true,
         });
-        const resAddFee2 = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE, toNano(200));
+        const resAddFee2 = await feeCollector.sendAddFee(deployer.getSender(), GAS_FEE_COLLECTOR_ADD_FEE + GAS_EXCESS, toNano(200));
         expect(resAddFee2.transactions).toHaveTransaction({
             from: deployer.address,
             to: feeCollector.address,
@@ -155,7 +155,7 @@ describe('FeeCollector', () => {
         });
         const dataAfter = await feeCollector.getData();
         expect(dataAfter.amount).toEqual(toNano(300));
-        const resWithDraw = await feeCollector.sendWithDraw(user1.getSender(), GAS_FEE_COLLECTOR_WITHDRAW + GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER);
+        const resWithDraw = await feeCollector.sendWithDraw(user1.getSender(), GAS_FEE_COLLECTOR_WITHDRAW + GAS_JETTON_WALLET_TRANSFER + GAS_EXCESS);
         expect(resWithDraw.transactions).toHaveTransaction({
             from: user1.address,
             to: feeCollector.address,

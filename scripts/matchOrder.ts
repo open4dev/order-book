@@ -1,23 +1,41 @@
 import { Address, toNano } from '@ton/core';
-import { VaultFactory } from '../wrappers/VaultFactory';
-import { compile, NetworkProvider, sleep } from '@ton/blueprint';
-import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
-import { Vault } from '../wrappers/Vault';
+import { NetworkProvider } from '@ton/blueprint';
 import { Order } from '../wrappers/Order';
+import { GAS_ORDER_FULL_MATCH, GAS_EXCESS } from '../tests/Helper';
 
-
+/**
+ * Example script to match two orders
+ * 
+ * Replace addresses with your actual order addresses
+ */
 export async function run(provider: NetworkProvider) {
-    const order = provider.open(Order.createFromAddress(Address.parse("EQA-DuarS2dFzRM7khypkfyUI8S5QojouNX28HE3LgovO-rp")));
+    // Replace with your actual order address (the order that will initiate the match)
+    // const ORDER_ADDRESS = Address.parse("YOUR_ORDER_ADDRESS_HERE");
+    // 
+    // // Replace with the address of the vault for the other order
+    // const ANOTHER_VAULT_ADDRESS = Address.parse("YOUR_ANOTHER_VAULT_ADDRESS_HERE");
+    // 
+    // // Replace with the address of the owner of the other order
+    // const ANOTHER_ORDER_OWNER_ADDRESS = Address.parse("YOUR_ANOTHER_ORDER_OWNER_ADDRESS_HERE");
+    // 
+    // // Replace with the creation timestamp of the other order (Unix timestamp in seconds)
+    // // You can get this from the order's getData() method
+    // const ANOTHER_ORDER_CREATED_AT = 0; // Replace with actual timestamp
+    // 
+    // // Amount to match (in nano units)
+    // const MATCH_AMOUNT = toNano("0.025"); // Example: 0.025 TON or jettons
+    // 
+    // const order = provider.open(Order.createFromAddress(ORDER_ADDRESS));
 
-    await order.sendMatchOrder(
-        provider.sender(),
-        toNano(1),
-        {
-            anotherVault: Address.parse("EQA8yOYAcTFc_PlaZqgVl8T0E3_493hzSgD2GXgQEj4bS_In"),
-            anotherOrderOwner: provider.sender().address!,
-            anotherOrder: Address.parse("EQArPkIA1kK33t8uszgZPFG4qVD4uLxlFbPqRSivTu3Spuj9"),
-            createdAt: Number(0x69511c95),
-            amount: toNano(0.025),
-        }
-    )
+    // Uncomment to execute:
+    // await order.sendMatchOrder(
+    //     provider.sender(),
+    //     GAS_ORDER_FULL_MATCH + GAS_EXCESS, // Gas for matching + excess(optional)
+    //     {
+    //         anotherVault: ANOTHER_VAULT_ADDRESS,
+    //         anotherOrderOwner: ANOTHER_ORDER_OWNER_ADDRESS,
+    //         createdAt: ANOTHER_ORDER_CREATED_AT, // Unix timestamp in seconds
+    //         amount: MATCH_AMOUNT,
+    //     }
+    // );
 }

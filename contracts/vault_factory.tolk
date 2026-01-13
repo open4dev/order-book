@@ -65,20 +65,23 @@ fun onInternalMessage(in: InMessage) {
 
     match (msg) {
         CreateVault => {
-            assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_VAULT_INIT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
+            assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
             reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
 
             var autoDeployAddress = prepareInitVault(msg.randomHash, storage.orderCode, storage.vaultCode, storage.feeCollectorCode, msg.jettonWalletCode, msg.fromJetton);
             
             var body = beginCell()
                 .storeUint(OP_CODE_VAULT_INIT, 32)
+                .storeAddress(in.senderAddress)
             .endCell();
             sendSimpleMessageToAutoDeploy(autoDeployAddress, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
-            return;
         }
         InitVaultFactory => {
             assert(in.valueCoins >= GAS_VAULT_FACTORY_INIT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
-            return;
+            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+
+            val body = generateBodyWithComment("Vault Factory Initialized");
+            sendSimpleMessage(in.senderAddress, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
         }
     }
 }

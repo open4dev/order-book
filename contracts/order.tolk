@@ -185,7 +185,6 @@ fun onInternalMessage(in: InMessage) {
             exchangeInfo.amount -= msg.amount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
-            return;
         }
         InternalMatchOrder => {
             var exchangeInfo = storage.exchangeInfo.load();
@@ -248,7 +247,6 @@ fun onInternalMessage(in: InMessage) {
             exchangeInfo.amount -= anotherGetAmount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
-            return;
         }
         SuccessMatch => {
             var exchangeInfo = storage.exchangeInfo.load();
@@ -285,15 +283,14 @@ fun onInternalMessage(in: InMessage) {
             exchangeInfo.amount += increaseAmount;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
-            return;
         }
         CloseOrder => {
+            assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
+            reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             assert(in.senderAddress == storage.owner) throw ERR_INVALID_SENDER;
-            assert(in.valueCoins >= GAS_VAULT_CLOSE_ORDER + GAS_ORDER_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
             
             var exchangeInfo = storage.exchangeInfo.load();
 
-            reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
 
             storage.sendVaultCloseOrder(
                 exchangeInfo.amount,
@@ -305,11 +302,9 @@ fun onInternalMessage(in: InMessage) {
             exchangeInfo.amount = 0;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.save();
-            return;
         }
         InitOrder => {
             assert(in.senderAddress == storage.vault) throw ERR_INVALID_SENDER;
-            assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT) throw ERR_INSUFFICIENT_GAS;
             var exchangeInfo = storage.exchangeInfo.load();
             if (exchangeInfo.amount > 0) {
                 storage.sendVaultCloseOrder(
@@ -326,10 +321,9 @@ fun onInternalMessage(in: InMessage) {
             exchangeInfo.slippage = msg.slippage;
             storage.exchangeInfo = exchangeInfo.toCell();
             storage.feeInfo = msg.feeInfo;
-            val body = beginCell().storeUint(0, 32).storeSlice("Order confirmed").endCell();
+            val body = generateBodyWithComment("Order confirmed");
             sendSimpleMessage(storage.owner, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
             storage.save();
-            return; 
         }
     }
 }

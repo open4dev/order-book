@@ -3,7 +3,7 @@ import { Cell, toNano } from '@ton/core';
 import { Vault2 } from '../wrappers/Vault2';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
-import { GAS_STORAGE, GAS_VAULT_INIT } from './Helper';
+import { GAS_EXCESS, GAS_STORAGE } from './Helper';
 
 
 // it is anon jetton wallet code
@@ -49,7 +49,7 @@ describe('Vault2', () => {
         }, code));
 
 
-        const deployResult = await vault2.sendDeploy(mockVaultFactory.getSender(), GAS_STORAGE + GAS_VAULT_INIT);
+        const deployResult = await vault2.sendDeploy(mockVaultFactory.getSender(), GAS_STORAGE);
 
         expect(deployResult.transactions).toHaveTransaction({
             from: mockVaultFactory.address,
