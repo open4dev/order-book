@@ -293,11 +293,13 @@ fun onInternalMessage(in: InMessage) {
             
             var exchangeInfo = storage.exchangeInfo.load();
 
+            reserveToncoinsOnBalance(GAS_MIN_ORDER_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+
             storage.sendVaultCloseOrder(
                 exchangeInfo.amount,
                 0,
                 exchangeInfo.to,
-                SEND_MODE_CARRY_ALL_BALANCE + SEND_MODE_DESTROY,
+                SEND_MODE_CARRY_ALL_BALANCE,
             );
 
             exchangeInfo.amount = 0;

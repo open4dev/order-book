@@ -320,7 +320,7 @@ describe('Order', () => {
             to: vaultJetton1.address,
             success: true,
         })
-        expect((await blockchain.getContract(order1.address)).accountState).toBeUndefined();
+        expect((await order1.getData()).exchangeInfo.amount).toEqual(0n)
     })
 
     it("Test match and close order", async () => {
@@ -401,7 +401,7 @@ describe('Order', () => {
             to: vaultJetton1.address,
             success: true,
         })
-        expect((await blockchain.getContract(order1.address)).accountState).toBeUndefined();
+        expect((await order1.getData()).exchangeInfo.amount).toEqual(0n)
 
         const vaultTonBalanceBeforeCloseOrder2 = (await blockchain.getContract(vaultJetton2.address)).balance;
         const resCloseOrder2 = await order2.sendCloseOrder(deployer.getSender(), GAS_VAULT_CLOSE_ORDER + GAS_ORDER_CLOSE_ORDER);
@@ -419,7 +419,7 @@ describe('Order', () => {
             to: vaultJetton2.address,
             success: true,
         })
-        expect((await blockchain.getContract(order2.address)).accountState).toBeUndefined();
+        expect((await order2.getData()).exchangeInfo.amount).toEqual(0n)
     })
 
     it("Match Orders jetton -> jetton", async () => {
