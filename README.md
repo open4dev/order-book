@@ -12,6 +12,8 @@ A decentralized order book system for TON blockchain that enables peer-to-peer t
 
 ## Architecture
 
+![Exchange Contracts Architecture](./Exchange_contracts.jpg)
+
 The order book system consists of several key smart contracts with a modular, utility-based architecture:
 
 ### Core Contracts
@@ -211,9 +213,9 @@ The VaultFactory contract is deployed with support for multiple vault versions:
 
 | Vault Version | Mainnet Address |
 |---------------|-----------------|
-| VaultFactory with Vault1 | `` |
-| VaultFactory with Vault2 | `` |
-| VaultFactory with Vault3 | `EQDjePE-do4Dn-ydes9s4UdK28EW3vVD6PVrlN59wNB3lwTX` |
+| VaultFactory with Vault-V1 | `` |
+| VaultFactory with Vault-V2 | `` |
+| VaultFactory with Vault-V3 | `EQDjePE-do4Dn-ydes9s4UdK28EW3vVD6PVrlN59wNB3lwTX` |
 | VaultFactory with VaultTon(0) | `EQAX8remy7sQLsWYv9ChULQz4GYqPHaqrgqA1Y-SqTLM6aQ1` |
 
 #### Supported Tokens
@@ -223,7 +225,7 @@ The VaultFactory contract is deployed with support for multiple vault versions:
 | Property | Value |
 |----------|-------|
 | **Vault Address** | `EQD-fT3BFC3EBpzq7I0awO4pShsd1rlhGiHNbGYPBxOYOUSe` |
-| **Vault Version** | 1 |
+| **Vault Version** | 0 |
 
 ##### Popular Jettons
 

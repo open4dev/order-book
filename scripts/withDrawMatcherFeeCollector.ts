@@ -11,15 +11,15 @@ import { GAS_FEE_COLLECTOR_WITHDRAW, GAS_JETTON_WALLET_TRANSFER, GAS_EXCESS } fr
  */
 export async function run(provider: NetworkProvider) {
     // Replace with your actual FeeCollector address
-    // const FEE_COLLECTOR_ADDRESS = Address.parse("YOUR_FEE_COLLECTOR_ADDRESS_HERE");
-    // 
-    // const feeCollector = provider.open(FeeCollector.createFromAddress(FEE_COLLECTOR_ADDRESS));
+    const FEE_COLLECTOR_ADDRESS = Address.parse("EQCuH_5GawaDaZaIBybcyvIuH3Dj3uHpFOKS0zi8s2ByoJT8");
+
+    const feeCollector = provider.open(FeeCollector.createFromAddress(FEE_COLLECTOR_ADDRESS));
 
     // Withdraw fees - excess gas will be returned
     // For jetton fees, add GAS_JETTON_WALLET_TRANSFER for the jetton transfer
     // Uncomment to execute:
-    // await feeCollector.sendWithDraw(
-    //     provider.sender(),
-    //     GAS_FEE_COLLECTOR_WITHDRAW + GAS_JETTON_WALLET_TRANSFER + GAS_EXCESS // Add GAS_JETTON_WALLET_TRANSFER if withdrawing jetton fees
-    // );
+    await feeCollector.sendWithDraw(
+        provider.sender(),
+        GAS_FEE_COLLECTOR_WITHDRAW
+    );
 }
