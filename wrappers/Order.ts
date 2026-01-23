@@ -53,6 +53,7 @@ export type FeeInfo = {
 export type Storage = {
     owner: Address;
     vault: Address;
+    oppositeVault: Address;
     feeInfo: FeeInfo | null;
     exchangeInfo: ExchangeInfo;
     createdAt: bigint;
@@ -61,6 +62,7 @@ export type Storage = {
 export type OrderConfig = {
     owner: Address;
     vault: Address;
+    oppositeVault: Address;
     feeInfo: FeeInfo | null;
     exchangeInfo: ExchangeInfo;
     createdAt: bigint;
@@ -91,6 +93,7 @@ export function orderConfigToCell(config: OrderConfig): Cell {
     return beginCell()
         .storeAddress(config.owner)
         .storeAddress(config.vault)
+        .storeAddress(config.oppositeVault)
         .storeMaybeRef(feeInfoCell)
         .storeRef(exchangeInfoCell)
         .storeUint(config.createdAt, 32)
@@ -144,7 +147,6 @@ export class Order implements Contract {
     }
 
     async sendMatchOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
-        anotherVault: Address,
         anotherOrderOwner: Address,
         createdAt: number,
         amount: bigint,
@@ -165,7 +167,6 @@ export class Order implements Contract {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x47ff7e25, 32)
-            .storeAddress(params.anotherVault)
             .storeAddress(params.anotherOrderOwner)
             .storeUint(params.createdAt, 32)
             .storeCoins(params.amount)
@@ -176,7 +177,6 @@ export class Order implements Contract {
 
     // Only for tests
     async sendInternalMatchOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
-        anotherVault: Address,
         anotherOrderOwner: Address,
         matcher: Address,
         feeInfo: {
@@ -231,7 +231,6 @@ export class Order implements Contract {
         
         const bodyInternalMatchOrder = beginCell()
             .storeUint(0xdfe29f63, 32)
-            .storeAddress(params.anotherVault)
             .storeAddress(params.anotherOrderOwner)
             .storeAddress(params.matcher)
             .storeRef(matchExchangeInfoCell)
@@ -247,7 +246,6 @@ export class Order implements Contract {
 
     // Only for tests
     async sendSuccessMatch(provider: ContractProvider, via: Sender, value: bigint, params: {
-        anotherVault: Address,
         anotherOrderOwner: Address,
         anotherOrderCreatedAt: number,
         matcher: Address,
@@ -300,7 +298,6 @@ export class Order implements Contract {
         
         const bodySuccessMatch = beginCell()
             .storeUint(0x55feb42a, 32)
-            .storeAddress(params.anotherVault)
             .storeAddress(params.anotherOrderOwner)
             .storeUint(params.anotherOrderCreatedAt, 32)
             .storeAddress(params.matcher)
@@ -339,6 +336,7 @@ export class Order implements Contract {
         let res = await provider.get('getData', []);
         var owner = res.stack.readAddress();
         var vault = res.stack.readAddress();
+        var oppositeVault = res.stack.readAddress();
         var exchangeInfoCell = res.stack.readCell().asSlice();
 
         var fromJettonAddress = null;
@@ -365,6 +363,7 @@ export class Order implements Contract {
         var result = {
             owner: owner,
             vault: vault,
+            oppositeVault: oppositeVault,
             exchangeInfo: exchangeInfo,
             createdAt: res.stack.readNumber(),
         };

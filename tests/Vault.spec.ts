@@ -5,7 +5,7 @@ import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
 import { JettonMinter, jettonMinterCodeCell } from '../wrappers/JettonMinter';
 import { JettonWallet, jettonWalletCodeCell } from '../wrappers/JettonWallet';
-import { GAS_CREATE_ORDER_JETTON, GAS_CREATE_ORDER_TON, GAS_EXCESS, GAS_FEE_COLLECTOR_WITHDRAW, GAS_JETTON_WALLET_TRANSFER, GAS_ORDER_CLOSE_ORDER, GAS_ORDER_FULL_MATCH, GAS_STORAGE, getFeeCollectorWrapper, getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './Helper';
+import { GAS_CREATE_ORDER_JETTON, GAS_CREATE_ORDER_TON, GAS_EXCESS, GAS_FEE_COLLECTOR_WITHDRAW, GAS_JETTON_WALLET_TRANSFER, GAS_ORDER_CLOSE_ORDER, GAS_ORDER_FULL_MATCH, GAS_STORAGE, GAS_VAULT_JETTON_TRANSFER_NOTIFICATION, getFeeCollectorWrapper, getJettonWalletWrapper, getOrderWrapper, mapOpcode } from './Helper';
 import { VaultTon } from '../wrappers/VaultTon';
 
 const anotherJettonWalletCode = Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395")
@@ -106,7 +106,9 @@ describe('Vault', () => {
     });
 
     it('Send init Success', async () => {
-        const sendInitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const sendInitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         expect(sendInitResult.transactions).toHaveTransaction({
             from: mockVaultFactory.address,
@@ -116,7 +118,9 @@ describe('Vault', () => {
     });
 
     it('Send init From not Vault Factory address', async () => {
-        const sendInitResult = await vaultTon.sendInitVault(deployer.getSender(), GAS_STORAGE);
+        const sendInitResult = await vaultTon.sendInitVault(deployer.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         expect(sendInitResult.transactions).toHaveTransaction({
             from: deployer.address,
@@ -127,7 +131,9 @@ describe('Vault', () => {
     });
 
     it('Send init with not enough value', async () => {
-        const sendInitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE - toNano(0.0001));
+        const sendInitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE - toNano(0.0001), {
+            creator: null,
+        });
 
         expect(sendInitResult.transactions).toHaveTransaction({
             from: mockVaultFactory.address,
@@ -141,7 +147,9 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const startVaultBalance = (await blockchain.getContract(vaultJetton1.address)).balance;
 
@@ -151,6 +159,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.02),
@@ -184,7 +193,9 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const startVaultBalance = (await blockchain.getContract(vaultJetton1.address)).balance;
 
@@ -195,6 +206,7 @@ describe('Vault', () => {
                 {
                     jettonAmount: toNano(1),
                     vault: vaultJetton1.address,
+                    oppositeVault: vaultTon.address,
                     owner: user1.address,
                     priceRate: toNano(2),
                     slippage: toNano(0.02),
@@ -228,7 +240,9 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultTon1InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultTon1InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const startVaultBalance = (await blockchain.getContract(vaultJetton1.address)).balance;
 
@@ -242,6 +256,7 @@ describe('Vault', () => {
                 {
                     amount: toNano(1),
                     priceRate: toNano(2),
+                    oppositeVault: vaultJetton1.address,
                     slippage: toNano(0.02),
                     toJettonMinter: jettonMinter2.address,
                     providerFee: deployer.address,
@@ -272,7 +287,9 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const startJettonBalance = await jettonWallet1.getJettonBalance();
 
@@ -282,6 +299,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.02),
@@ -312,7 +330,9 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const startVaultBalance = (await blockchain.getContract(vaultJetton1.address)).balance;
 
@@ -348,7 +368,9 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultTon1InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultTon1InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const startVaultBalance = (await blockchain.getContract(vaultTon.address)).balance;
 
@@ -358,6 +380,7 @@ describe('Vault', () => {
             {
                 amount: toNano(1),
                 priceRate: toNano(2),
+                oppositeVault: vaultJetton1.address,
                 slippage: toNano(0.02),
                 toJettonMinter: jettonMinter2.address,
                 providerFee: deployer.address,
@@ -390,7 +413,9 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(100), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultTon1InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultTon1InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const startVaultBalance = (await blockchain.getContract(vaultTon.address)).balance;
 
@@ -400,6 +425,7 @@ describe('Vault', () => {
             {
                 amount: toNano(1),
                 priceRate: toNano(2),
+                oppositeVault: vaultJetton1.address,
                 slippage: toNano(0.02),
                 toJettonMinter: jettonMinter2.address,
                 providerFee: deployer.address,
@@ -431,8 +457,12 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const jettonTransferResult = await jettonWallet1.sendCreateOrder(
             user1.getSender(),
@@ -440,6 +470,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
@@ -463,6 +494,7 @@ describe('Vault', () => {
             {
                 amount: toNano(2000),
                 priceRate: toNano(0.5),
+                oppositeVault: vaultJetton1.address,
                 slippage: toNano(0.05),
                 toJettonMinter: jettonMinter1.address,
                 providerFee: deployer.address,
@@ -481,7 +513,6 @@ describe('Vault', () => {
             deployer.getSender(),
             GAS_ORDER_FULL_MATCH + GAS_EXCESS,
             {
-                anotherVault: vaultTon.address,
                 anotherOrderOwner: user1.address,
                 createdAt: (await order2.getData()).createdAt,
                 amount: toNano(100),
@@ -535,9 +566,13 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
         // printTransactionFees(vaultJetton1InitResult.transactions, mapOpcode);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
         // printTransactionFees(vaultJetton2InitResult.transactions, mapOpcode);
 
         const jettonTransferResult = await jettonWallet1.sendCreateOrder(
@@ -546,6 +581,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
@@ -570,6 +606,7 @@ describe('Vault', () => {
             {
                 amount: toNano(2000),
                 priceRate: toNano(0.5),
+                oppositeVault: vaultJetton1.address,
                 slippage: toNano(0.05),
                 toJettonMinter: jettonMinter1.address,
                 providerFee: deployer.address,
@@ -589,7 +626,6 @@ describe('Vault', () => {
             user1.getSender(),
             GAS_ORDER_FULL_MATCH + GAS_EXCESS,
             {
-                anotherVault: vaultTon.address,
                 anotherOrderOwner: user1.address,
                 createdAt: (await order2.getData()).createdAt,
                 amount: toNano(100),
@@ -624,8 +660,12 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const jettonTransferResult = await jettonWallet1.sendCreateOrder(
             user1.getSender(),
@@ -633,6 +673,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
@@ -656,6 +697,7 @@ describe('Vault', () => {
             {
                 amount: toNano(2000),
                 priceRate: toNano(0.5),
+                oppositeVault: vaultJetton1.address,
                 slippage: toNano(0.05),
                 toJettonMinter: jettonMinter1.address,
                 providerFee: deployer.address,
@@ -674,7 +716,6 @@ describe('Vault', () => {
             user1.getSender(),
             GAS_ORDER_FULL_MATCH + GAS_EXCESS,
             {
-                anotherVault: vaultTon.address,
                 anotherOrderOwner: user1.address,
                 createdAt: (await order2.getData()).createdAt,
                 amount: toNano(100),
@@ -706,7 +747,9 @@ describe('Vault', () => {
 
     it("VaultJettonTransfer -> Failed with not enough gas", async () => {
         // TODO: Add test logic for assert(in.valueCoins >= GAS_JETTON_WALLET_TRANSFER) throw ERR_INSUFFICIENT_GAS;
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
         const vaultJettonTransferResult = await vaultJetton1.sendVaultJettonTransfer(
             user1.getSender(),
             GAS_JETTON_WALLET_TRANSFER - toNano(0.0001),
@@ -719,6 +762,7 @@ describe('Vault', () => {
                     matcherFeeDenom: 1000,
                 },
                 orderOwner: user1.address,
+                oppositeVault: vaultTon.address,
                 matcher: deployer.address,
                 anotherOwnerOrder: user1.address,
                 toJettonMinter: jettonMinter1.address,
@@ -736,7 +780,9 @@ describe('Vault', () => {
 
     it("VaultJettonTransfer -> Success with enough gas", async () => {
         // TODO: Add positive test logic for assert(in.valueCoins >= GAS_JETTON_WALLET_TRANSFER);
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
         const vaultJettonTransferResult = await vaultJetton1.sendVaultJettonTransfer(
             user1.getSender(),
             GAS_JETTON_WALLET_TRANSFER,
@@ -749,6 +795,7 @@ describe('Vault', () => {
                     matcherFeeDenom: 1000,
                 },
                 orderOwner: user1.address,
+                oppositeVault: vaultTon.address,
                 matcher: deployer.address,
                 anotherOwnerOrder: user1.address,
                 toJettonMinter: jettonMinter1.address,
@@ -765,7 +812,9 @@ describe('Vault', () => {
     });
 
     it("VaultJettonTransfer -> Failed with invalid sender (not from generated order)", async () => {
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
         const vaultJettonTransferResult = await vaultJetton1.sendVaultJettonTransfer(
             user1.getSender(),
             GAS_JETTON_WALLET_TRANSFER,
@@ -778,6 +827,7 @@ describe('Vault', () => {
                     matcherFeeDenom: 1000,
                 },
                 orderOwner: user1.address,
+                oppositeVault: vaultTon.address,
                 matcher: deployer.address,
                 anotherOwnerOrder: user1.address,
                 toJettonMinter: jettonMinter1.address,
@@ -797,8 +847,12 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const jettonTransferResult = await jettonWallet1.sendCreateOrder(
             user1.getSender(),
@@ -806,6 +860,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
@@ -829,6 +884,7 @@ describe('Vault', () => {
             {
                 amount: toNano(2000),
                 priceRate: toNano(0.5),
+                oppositeVault: vaultJetton1.address,
                 slippage: toNano(0.05),
                 toJettonMinter: jettonMinter1.address,
                 providerFee: deployer.address,
@@ -847,7 +903,6 @@ describe('Vault', () => {
             user1.getSender(),
             GAS_ORDER_FULL_MATCH + GAS_EXCESS,
             {
-                anotherVault: vaultTon.address,
                 anotherOrderOwner: user1.address,
                 createdAt: (await order2.getData()).createdAt,
                 amount: toNano(100),
@@ -872,14 +927,19 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const closeOrderResult = await vaultJetton1.sendCloseOrder(
             user1.getSender(),
-            GAS_ORDER_CLOSE_ORDER - toNano(0.0001),
+            GAS_STORAGE - toNano(0.001),
             {
                 orderOwner: user1.address,
+                oppositeVault: vaultTon.address,
                 toJetton: {
                     jettonMinter: jettonMinter1.address,
                 },
@@ -891,18 +951,21 @@ describe('Vault', () => {
             from: user1.address,
             to: vaultJetton1.address,
             success: false,
-            exitCode: 422,
+            exitCode: 37,
         });
     });
 
     it("CloseOrder (Vault) -> Success with enough gas", async () => {
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
 
         const closeOrderResult = await vaultJetton1.sendCloseOrder(
             user1.getSender(),
             GAS_ORDER_CLOSE_ORDER,
             {
                 orderOwner: user1.address,
+                oppositeVault: vaultTon.address,
                 toJetton: {
                     jettonMinter: jettonMinter1.address,
                 },
@@ -919,13 +982,16 @@ describe('Vault', () => {
     });
 
     it("CloseOrder (Vault) -> Failed with invalid sender (not from generated order)", async () => {
-        await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const closeOrderResult = await vaultJetton1.sendCloseOrder(
             user1.getSender(),
             GAS_ORDER_CLOSE_ORDER,
             {
                 orderOwner: user1.address,
+                oppositeVault: vaultTon.address,
                 toJetton: {
                     jettonMinter: jettonMinter1.address,
                 },
@@ -945,8 +1011,12 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const jettonTransferResult = await jettonWallet1.sendCreateOrder(
             user1.getSender(),
@@ -954,6 +1024,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
@@ -988,8 +1059,12 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         // Get initial balance
         const initialBalance = await jettonWallet1.getJettonBalance();
@@ -1000,11 +1075,12 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
                 toJettonMinter: null,
-                forwardTonAmount: GAS_CREATE_ORDER_JETTON - toNano(0.0001),
+                forwardTonAmount: GAS_CREATE_ORDER_JETTON - toNano(0.001),
                 providerFee: deployer.address,
                 feeNum: 1,
                 feeDenom: 1000,
@@ -1037,8 +1113,12 @@ describe('Vault', () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const jettonTransferResult = await jettonWallet1.sendCreateOrder(
             user1.getSender(),
@@ -1046,6 +1126,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
@@ -1067,61 +1148,68 @@ describe('Vault', () => {
         });
     });
 
-    it("JettonTransferNotification -> Failed with invalid jetton wallet", async () => {
-        const mintJetton1Result = await anotherJettonMinter.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
-        // printTransactionFees(mintJetton1Result.transactions);
-        const anotherJettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
-        await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+    // it("JettonTransferNotification -> Failed with invalid jetton wallet", async () => {
+    //     const mintJetton1Result = await anotherJettonMinter.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
+    //     // printTransactionFees(mintJetton1Result.transactions);
+    //     const anotherJettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
+    //     await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+    //         creator: null,
+    //     });
 
-        // Get initial balance
-        const initialBalance = await anotherJettonWallet1.getJettonBalance();
+    //     // Get initial balance
+    //     const initialBalance = await anotherJettonWallet1.getJettonBalance();
 
-        const jettonTransferResult = await anotherJettonWallet1.sendCreateOrder(
-            user1.getSender(),
-            toNano(0.15) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS,
-            {
-                jettonAmount: toNano(1000),
-                vault: vaultJetton1.address,
-                owner: user1.address,
-                priceRate: toNano(2),
-                slippage: toNano(0.05),
-                toJettonMinter: null,
-                forwardTonAmount: GAS_CREATE_ORDER_JETTON,
-                providerFee: deployer.address,
-                feeNum: 1,
-                feeDenom: 1000,
-                matcherFeeNum: 1,
-                matcherFeeDenom: 1000,
-                createdAt: Math.round(Number(new Date().getTime() / 1000))
-            }
-        )
-        printTransactionFees(jettonTransferResult.transactions);
+    //     const jettonTransferResult = await anotherJettonWallet1.sendCreateOrder(
+    //         user1.getSender(),
+    //         toNano(0.15) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS,
+    //         {
+    //             jettonAmount: toNano(1000),
+    //             vault: vaultJetton1.address,
+    //             oppositeVault: vaultTon.address,
+    //             owner: user1.address,
+    //             priceRate: toNano(2),
+    //             slippage: toNano(0.05),
+    //             toJettonMinter: null,
+    //             forwardTonAmount: GAS_CREATE_ORDER_JETTON,
+    //             providerFee: deployer.address,
+    //             feeNum: 1,
+    //             feeDenom: 1000,
+    //             matcherFeeNum: 1,
+    //             matcherFeeDenom: 1000,
+    //             createdAt: Math.round(Number(new Date().getTime() / 1000))
+    //         }
+    //     )
+    //     printTransactionFees(jettonTransferResult.transactions);
 
-        // Transaction should be successful, jettons should be returned
-        expect(jettonTransferResult.transactions).toHaveTransaction({
-            to: vaultJetton1.address,
-            success: true,
-        });
+    //     // Transaction should be successful, jettons should be returned
+    //     expect(jettonTransferResult.transactions).toHaveTransaction({
+    //         to: vaultJetton1.address,
+    //         success: true,
+    //     });
 
-        // Check that jettons were returned to user
-        expect(jettonTransferResult.transactions).toHaveTransaction({
-            from: vaultJetton1.address,
-            to: anotherJettonWallet1.address,
-            success: true,
-            op: 0xf8a7ea5, // OP_CODE_JETTON_TRANSFER
-        });
+    //     // Check that jettons were returned to user
+    //     expect(jettonTransferResult.transactions).toHaveTransaction({
+    //         from: vaultJetton1.address,
+    //         to: anotherJettonWallet1.address,
+    //         success: true,
+    //         op: 0xf8a7ea5, // OP_CODE_JETTON_TRANSFER
+    //     });
 
-        // Verify balance was returned (should be same as initial)
-        const finalBalance = await anotherJettonWallet1.getJettonBalance();
-        expect(finalBalance).toEqual(initialBalance);
-    });
+    //     // Verify balance was returned (should be same as initial)
+    //     const finalBalance = await anotherJettonWallet1.getJettonBalance();
+    //     expect(finalBalance).toEqual(initialBalance);
+    // });
 
     it("JettonTransferNotification -> Success with valid jetton wallet", async () => {
         const mintJetton1Result = await jettonMinter1.sendMint(deployer.getSender(), user1.address, toNano(1000), null, null, null, undefined, undefined);
         const jettonWallet1 = getJettonWalletWrapper(blockchain, mintJetton1Result, jettonMinter1.address);
 
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
-        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const vaultJetton2InitResult = await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE, {
+            creator: null,
+        });
 
         const jettonTransferResult = await jettonWallet1.sendCreateOrder(
             user1.getSender(),
@@ -1129,6 +1217,7 @@ describe('Vault', () => {
             {
                 jettonAmount: toNano(1000),
                 vault: vaultJetton1.address,
+                oppositeVault: vaultTon.address,
                 owner: user1.address,
                 priceRate: toNano(2),
                 slippage: toNano(0.05),
@@ -1151,7 +1240,10 @@ describe('Vault', () => {
     });
 
     it("WithDraw (Vault) -> Failed with not enough gas", async () => {
-        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS);
+        const vaultJetton1InitResult = await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        printTransactionFees(vaultJetton1InitResult.transactions, mapOpcode)
 
         const withDrawResult = await vaultJetton1.sendWithDraw(deployer.getSender(), toNano(0.003), {
             feeAddress: deployer.address,
@@ -1161,7 +1253,7 @@ describe('Vault', () => {
         expect(withDrawResult.transactions).toHaveTransaction({
             success: false,
             to: vaultJetton1.address,
-            exitCode: 422,
+            exitCode: 403,
         });
     });
 

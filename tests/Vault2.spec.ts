@@ -97,11 +97,11 @@ describe('Vault2', () => {
     });
 
     it("JettonTransferNotification (Vault2) -> Failed with not enough gas", async () => {
-        // TODO: Add test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE) throw ERR_INSUFFICIENT_GAS;
+        // TODO: Add test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_CREATE_ORDER_JETTON_OUT_FORWARD_FEE + GAS_CREATE_ORDER_JETTON_COMPUTE_FEE) throw ERR_INSUFFICIENT_GAS;
     });
 
     it("JettonTransferNotification (Vault2) -> Success with enough gas", async () => {
-        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_OUT_FORWARD_FEE + GAS_VAULT_JETTON_TRANSFER_NOTIFICATION_COMPUTE_FEE);
+        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_STORAGE + GAS_ORDER_INIT + GAS_CREATE_ORDER_JETTON_OUT_FORWARD_FEE + GAS_CREATE_ORDER_JETTON_COMPUTE_FEE);
     });
 
     it("JettonTransferNotification (Vault2) -> Failed with forward_payload == null", async () => {

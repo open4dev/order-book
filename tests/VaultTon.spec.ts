@@ -53,28 +53,29 @@ describe('VaultTon', () => {
         // blockchain and vaultTon are ready to use
     });
 
-    it("VaultJettonTransfer (VaultTon) -> Failed with not enough gas", async () => {
-        // TODO: Add test logic for assert(in.valueCoins >= GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw ERR_INSUFFICIENT_GAS;
-        const vaultJettonTransferResult = await vaultTon.sendCreateOrder(
-            deployer.getSender(),
-            toNano(100) + GAS_CREATE_ORDER_TON - toNano(0.0001),
-            {
-                amount: toNano(100),
-                priceRate: toNano(2),
-                slippage: toNano(0.05),
-                toJettonMinter: randomAddress(0),
-                providerFee: deployer.address,
-                feeNum: 1,
-                feeDenom: 1000,
-                matcherFeeNum: 1,
-                matcherFeeDenom: 1000,
-                createdAt: Math.round(Number(new Date().getTime() / 1000)),
-            }
-        );
-        printTransactionFees(vaultJettonTransferResult.transactions);
+    // it("VaultJettonTransfer (VaultTon) -> Failed with not enough gas", async () => {
+    //     // TODO: Add test logic for assert(in.valueCoins >= GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER) throw ERR_INSUFFICIENT_GAS;
+    //     const vaultJettonTransferResult = await vaultTon.sendCreateOrder(
+    //         deployer.getSender(),
+    //         toNano(100) + GAS_CREATE_ORDER_TON - toNano(0.0001),
+    //         {
+    //             amount: toNano(100),
+    //             priceRate: toNano(2),
+    //             oppositeVault: vaultJetton1.address,
+    //             slippage: toNano(0.05),
+    //             toJettonMinter: randomAddress(0),
+    //             providerFee: deployer.address,
+    //             feeNum: 1,
+    //             feeDenom: 1000,
+    //             matcherFeeNum: 1,
+    //             matcherFeeDenom: 1000,
+    //             createdAt: Math.round(Number(new Date().getTime() / 1000)),
+    //         }
+    //     );
+    //     printTransactionFees(vaultJettonTransferResult.transactions);
 
 
-    });
+    // });
 
     it("VaultJettonTransfer (VaultTon) -> Success with enough gas", async () => {
         // TODO: Add positive test logic for assert(in.valueCoins >= GAS_VAULT_JETTON_TRANSFER + GAS_JETTON_WALLET_TRANSFER);

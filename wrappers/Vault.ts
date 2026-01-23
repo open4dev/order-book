@@ -89,6 +89,7 @@ export class Vault implements Contract {
         matcherFeeNum: number, // uint14
         matcherFeeDenom: number, // uint14
         createdAt: number,
+        oppositeVault: Address,
     }) {
         // struct ( 0xcbcd047e ) TonTransfer {
         //     amount: coins,
@@ -122,12 +123,19 @@ export class Vault implements Contract {
         });
     }
 
-    async sendInitVault(provider: ContractProvider, via: Sender, value: bigint) {
+    async sendInitVault(provider: ContractProvider, via: Sender, value: bigint, params: {
+        creator: Address | null,
+    }) {
+        var creatorAddress: Address | null = params.creator;
+        if (params.creator === null) {
+            creatorAddress = via.address!;
+        }
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x2717c4a2, 32)
+            .storeAddress(params.creator)
             .endCell(),
         });
     }
@@ -142,6 +150,7 @@ export class Vault implements Contract {
             matcherFeeDenom: number,
         },
         orderOwner: Address,
+        oppositeVault: Address,
         matcher: Address,
         anotherOwnerOrder: Address,
         toJettonMinter: Address | null,
@@ -195,6 +204,7 @@ export class Vault implements Contract {
         const bodyVaultJettonTransfer = beginCell()
             .storeUint(0x12966c79, 32)
             .storeRef(addressesCell)
+            .storeAddress(params.oppositeVault)
             .storeMaybeRef(toJettonCell)
             .storeCoins(params.amountTransfer)
             .storeUint(params.createdAtOrder, 32)
@@ -210,6 +220,7 @@ export class Vault implements Contract {
     // Only for testing
     async sendCloseOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
         orderOwner: Address,
+        oppositeVault: Address,
         toJetton: {
             jettonMinter: Address | null,
         },
@@ -238,6 +249,7 @@ export class Vault implements Contract {
         const bodyCloseOrder = beginCell()
             .storeUint(0xa597947e, 32)
             .storeAddress(params.orderOwner)
+            .storeAddress(params.oppositeVault)
             .storeMaybeRef(toJettonCell)
             .storeCoins(params.amountTransfer)
             .storeUint(params.createdAtOrder, 32)

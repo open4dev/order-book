@@ -119,6 +119,7 @@ export class JettonWallet implements Contract {
     async sendCreateOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
         jettonAmount: bigint,
         vault: Address,
+        oppositeVault: Address,
         owner: Address,
         priceRate: bigint,
         slippage: bigint, // uint30
@@ -146,6 +147,7 @@ export class JettonWallet implements Contract {
                 .endCell()
             )
             .storeUint(params.createdAt, 32)
+            .storeAddress(params.oppositeVault)
             .endCell();
 
         await this.sendTransfer(

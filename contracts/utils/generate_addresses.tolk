@@ -1,5 +1,6 @@
 fun generateOrder(
     vault: address,
+    oppositeVault: address,
     orderOwner: address,
     fromJetton: cell?,
     toJetton: cell?,
@@ -17,6 +18,7 @@ fun generateOrder(
     var orderInitData = beginCell()
         .storeAddress(orderOwner)
         .storeAddress(vault)
+        .storeAddress(oppositeVault)
         .storeMaybeRef(null)
         .storeRef(orderInitDataExchangeInfo)
         .storeUint(createdAt, 32)

@@ -19,6 +19,7 @@ struct ExchangeInfo {
 struct Storage {
     owner: address
     vault: address
+    oppositeVault: address
     feeInfo: Cell<FeeInfo>?
     exchangeInfo: Cell<ExchangeInfo>
     createdAt: uint32
@@ -37,24 +38,21 @@ struct SuccessInfo {
 }
 
 struct ( 0x47ff7e25 ) MatchOrder {
-    anotherVault: address
-    anotherOrderOwner: address
+    oppositeOrderOwner: address
     createdAt: uint32
     amount: coins
 }
 
 struct ( 0xdfe29f63 ) InternalMatchOrder {
-    anotherVault: address
-    anotherOrderOwner: address
+    oppositeOrderOwner: address
     matcher: address
     matchExchangeInfo: Cell<MatchExchangeInfo>
     createdAt: uint32
 }
 
 struct ( 0x55feb42a ) SuccessMatch {
-    anotherVault: address
-    anotherOrderOwner: address
-    anotherOrderCreatedAt: uint32
+    oppositeOrderOwner: address
+    oppositOrderCreatedAt: uint32
     matcher: address
     feeInfo: Cell<FeeInfo>
     matchExchangeInfo: Cell<SuccessInfo>
@@ -71,6 +69,7 @@ struct ( 0x2d0e1e1b ) InitOrder {
 
 struct ( 0xa597947e ) CloseOrderMessageToVault {
     orderOwner: address
+    oppositeVault: address
     toJetton: Cell<JettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
@@ -78,6 +77,7 @@ struct ( 0xa597947e ) CloseOrderMessageToVault {
 
 struct ( 0x12966c79 ) VaultTransferJetton {
     addresses: Cell<TransferAddresses>
+    oppositeVault: address
     toJetton: Cell<JettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
@@ -105,6 +105,7 @@ fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, to
     };
     var transferJetton = VaultTransferJetton {
         addresses: addresses.toCell(),
+        oppositeVault: self.oppositeVault,
         toJetton: toJetton,
         amountTransfer: amount,
         createdAtOrder: self.createdAt,
@@ -117,6 +118,7 @@ fun Storage.sendVaultTransferJetton(mutate self, value: coins, amount: coins, to
 fun Storage.sendVaultCloseOrder(self, amountTransfer: coins, value: coins, toJetton: Cell<JettonInfo>?, sendMode: int) {
     var closeOrder = CloseOrderMessageToVault {
         orderOwner: self.owner,
+        oppositeVault: self.oppositeVault,
         toJetton: toJetton,
         amountTransfer: amountTransfer,
         createdAtOrder: self.createdAt
@@ -129,16 +131,14 @@ fun Storage.sendSuccessMatch(mutate self, value: coins, anotherOrder: address, s
         startAmount: startAmount,
         amount: amount
     };
-    var body = beginCell()
-        .storeUint(OP_CODE_SUCCESS_MATCH, 32)
-        .storeAddress(self.vault)
-        .storeAddress(self.owner)
-        .storeUint(self.createdAt, 32)
-        .storeAddress(matcher)
-        .storeRef(self.feeInfo!)
-        .storeRef(successInfo.toCell())
-    .endCell();
-    sendSimpleMessage(anotherOrder, value, body, sendMode);
+    var body = SuccessMatch {
+        oppositeOrderOwner: self.owner,
+        oppositOrderCreatedAt: self.createdAt,
+        matcher: matcher,
+        feeInfo: self.feeInfo!,
+        matchExchangeInfo: successInfo.toCell()
+    };
+    sendSimpleMessage(anotherOrder, value, body.toCell(), sendMode);
 }
 
 type AllowedMessage = MatchOrder | InternalMatchOrder | CloseOrder | InitOrder | SuccessMatch
@@ -154,8 +154,9 @@ fun onInternalMessage(in: InMessage) {
             assert(exchangeInfo.amount > 0) throw ERR_AMOUNT_NOT_AVAILABLE;
             assert(msg.amount <= exchangeInfo.amount) throw ERR_INVALID_AMOUNT;
             var generatedOrder = generateOrder(
-                msg.anotherVault,
-                msg.anotherOrderOwner,
+                storage.oppositeVault,
+                storage.vault,
+                msg.oppositeOrderOwner,
                 exchangeInfo.to,
                 exchangeInfo.from,
                 contract.getCode(),
@@ -169,8 +170,7 @@ fun onInternalMessage(in: InMessage) {
             };
 
             var bodyInternalMatchOrder = InternalMatchOrder {
-                anotherVault: storage.vault,
-                anotherOrderOwner: storage.owner,
+                oppositeOrderOwner: storage.owner,
                 matcher: in.senderAddress,
                 matchExchangeInfo: matchInternalExchangeInfo.toCell(),
                 createdAt: storage.createdAt,
@@ -189,8 +189,9 @@ fun onInternalMessage(in: InMessage) {
         InternalMatchOrder => {
             var exchangeInfo = storage.exchangeInfo.load();
             var anotherOrder = generateOrder(
-                msg.anotherVault,
-                msg.anotherOrderOwner,
+                storage.oppositeVault,
+                storage.vault,
+                msg.oppositeOrderOwner,
                 exchangeInfo.to,
                 exchangeInfo.from,
                 contract.getCode(),
@@ -238,7 +239,7 @@ fun onInternalMessage(in: InMessage) {
                 0,
                 anotherGetAmount,
                 exchangeInfo.to,
-                msg.anotherOrderOwner,
+                msg.oppositeOrderOwner,
                 matchExchangeInfo.feeInfo,
                 msg.matcher,
                 SEND_MODE_CARRY_ALL_BALANCE,
@@ -251,12 +252,13 @@ fun onInternalMessage(in: InMessage) {
         SuccessMatch => {
             var exchangeInfo = storage.exchangeInfo.load();
             var anotherOrder = generateOrder(
-                msg.anotherVault,
-                msg.anotherOrderOwner,
+                storage.oppositeVault,
+                storage.vault,
+                msg.oppositeOrderOwner,
                 exchangeInfo.to,
                 exchangeInfo.from,
                 contract.getCode(),
-                msg.anotherOrderCreatedAt
+                msg.oppositOrderCreatedAt
             );
             var generatedAnotherOrderAddress = anotherOrder.calculateAddress();
             assert(in.senderAddress == generatedAnotherOrderAddress) throw ERR_INVALID_SENDER;
@@ -274,7 +276,7 @@ fun onInternalMessage(in: InMessage) {
                 0,
                 matchExchangeInfo.amount,
                 exchangeInfo.to,
-                msg.anotherOrderOwner,
+                msg.oppositeOrderOwner,
                 msg.feeInfo,
                 msg.matcher,
                 SEND_MODE_CARRY_ALL_BALANCE,
@@ -350,8 +352,8 @@ fun onBouncedMessage(in: InMessageBounced) {
     return;
 }
 
-get fun getData(): (address, address, cell, uint32) {
+get fun getData(): (address, address, address, cell, uint32) {
     var storage = lazy Storage.fromCell(contract.getData());
 
-    return (storage.owner, storage.vault, storage.exchangeInfo, storage.createdAt);
+    return (storage.owner, storage.vault, storage.oppositeVault, storage.exchangeInfo, storage.createdAt);
 }

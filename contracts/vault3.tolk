@@ -26,10 +26,12 @@ struct JettonTransferNotificationPayload {
     slippage: uint30
     feeInfo: Cell<FeeInfo>
     createdAt: uint32
+    oppositeVault: address
 }
 
 struct ( 0x12966c79 ) VaultJettonTransfer {
     addresses: Cell<TransferAddresses>
+    oppositeVault: address
     toJetton: Cell<JettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
@@ -54,6 +56,7 @@ struct (0xee83652a) WithDraw {
 
 struct ( 0xa597947e ) CloseOrder {
     orderOwner: address
+    oppositeVault: address
     toJetton: Cell<JettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
@@ -63,9 +66,10 @@ fun Storage.save(self) {
     contract.setData(self.toCell())
 }
 
-fun Storage.sendCreateOrder(mutate self, fromJetton: cell, toJetton: cell?, owner: address, amount: coins, priceRate: coins, slippage: uint30, feeInfo: Cell<FeeInfo>, value: coins, createdAt: uint32, sendMode: int) {
+fun Storage.sendCreateOrder(mutate self, fromJetton: cell, toJetton: cell?, owner: address, amount: coins, priceRate: coins, slippage: uint30, feeInfo: Cell<FeeInfo>, value: coins, createdAt: uint32, oppositeVault: address, sendMode: int) {
     var order: AutoDeployAddress = generateOrder(
         contract.getAddress(),
+        oppositeVault,
         owner,
         fromJetton,
         toJetton,
@@ -135,6 +139,7 @@ fun onInternalMessage(in: InMessage) {
             var addresses = msg.addresses.load();
             var generatedOrder = generateOrder(
                 contract.getAddress(),
+                msg.oppositeVault,
                 addresses.orderOwner,
                 storage.fromJetton!,
                 msg.toJetton,
@@ -177,6 +182,7 @@ fun onInternalMessage(in: InMessage) {
             val codesInfo = storage.codesInfo.load();
             var generatedOrder = generateOrder(
                 contract.getAddress(),
+                msg.oppositeVault,
                 msg.orderOwner,
                 storage.fromJetton!,
                 msg.toJetton,
@@ -212,7 +218,7 @@ fun onInternalMessage(in: InMessage) {
             assert(generatedJettonWallet.calculateAddress() == in.senderAddress) throw ERR_INVALID_JETTON_WALLET;
 
             if (
-                (in.valueCoins < GAS_VAULT_JETTON_TRANSFER_NOTIFICATION)
+                (in.valueCoins < GAS_CREATE_ORDER_JETTON)
                 ||
                 (msg.forward_payload == null)
                 ) {
@@ -231,7 +237,8 @@ fun onInternalMessage(in: InMessage) {
                 forwardPayload.slippage, 
                 forwardPayload.feeInfo, 
                 0, 
-                forwardPayload.createdAt, 
+                forwardPayload.createdAt,
+                forwardPayload.oppositeVault,
                 SEND_MODE_CARRY_ALL_BALANCE
             );
             storage.amount += msg.amount;
