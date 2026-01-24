@@ -269,6 +269,7 @@ describe('VaultFactory', () => {
         const resCreateOrderFrom = await jettonWalletFrom.sendCreateOrder(user1.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(15),
             vault: vault1.address,
+            oppositeVault: vault2.address,
             owner: user1.address,
             priceRate: toNano(0.66),
             slippage: toNano(0.02),
@@ -296,6 +297,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTo = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(10),
             vault: vault2.address,
+            oppositeVault: vault1.address,
             owner: user2.address,
             priceRate: toNano(1.5),
             slippage: toNano(0.02),
@@ -324,7 +326,6 @@ describe('VaultFactory', () => {
         // console.log("balanceOrder2,", balanceOrder2)
 
         const resultMatchOrder = await order1.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH + GAS_EXCESS, {
-            anotherVault: vault2.address,
             anotherOrderOwner: user2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
@@ -390,6 +391,7 @@ describe('VaultFactory', () => {
         const resCreateOrderFrom = await vault1.sendCreateOrder(user1.getSender(), toNano(15) + GAS_CREATE_ORDER_TON + GAS_EXCESS, {
             amount: toNano(15),
             priceRate: toNano(1),
+            oppositeVault: vault2.address,
             slippage: toNano(0.02),
             toJettonMinter: toJettonMinter.address,
             providerFee: deployer.address,
@@ -413,6 +415,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTo = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(15),
             vault: vault2.address,
+            oppositeVault: vault1.address,
             owner: user2.address,
             priceRate: toNano(1),
             slippage: toNano(0.02),
@@ -446,7 +449,6 @@ describe('VaultFactory', () => {
         // console.log("order_JETTON_balance_before_match_order,", order_JETTON_balance_before_match_order)
 
         const resultMatchOrder = await order1.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH + GAS_EXCESS, {
-            anotherVault: vault2.address,
             anotherOrderOwner: user2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(15),
@@ -514,6 +516,7 @@ describe('VaultFactory', () => {
         const resCreateOrderFrom = await jettonWalletFrom.sendCreateOrder(user1.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(15),
             vault: vault1.address,
+            oppositeVault: vault2.address,
             owner: user1.address,
             priceRate: toNano(0.66),
             slippage: toNano(0.02),
@@ -536,6 +539,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTo = await vault2.sendCreateOrder(user2.getSender(), toNano(10) + GAS_CREATE_ORDER_TON + GAS_EXCESS, {
             amount: toNano(10),
             priceRate: toNano(1.5),
+            oppositeVault: vault1.address,
             slippage: toNano(0.02),
             toJettonMinter: fromJettonMinter.address,
             providerFee: deployer.address,
@@ -552,7 +556,6 @@ describe('VaultFactory', () => {
         const order2 = getOrderWrapper(blockchain, resCreateOrderTo, vault2.address)
 
         const resultMatchOrder = await order1.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH + GAS_EXCESS, {
-            anotherVault: vault2.address,
             anotherOrderOwner: user2.address,
             createdAt: (await order2.getData()).createdAt,
             amount: toNano(10),
@@ -617,6 +620,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTon1 = await vaultTon.sendCreateOrder(user1.getSender(), toNano(500) + GAS_CREATE_ORDER_TON + GAS_EXCESS, {
             amount: toNano(500),
             priceRate: toNano(1),
+            oppositeVault: vaultJetton.address,
             slippage: toNano(0.02),
             toJettonMinter: toJettonMinter.address,
             providerFee: deployer.address,
@@ -638,6 +642,7 @@ describe('VaultFactory', () => {
         const resCreateOrderJetton1 = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(500),
             vault: vaultJetton.address,
+            oppositeVault: vaultTon.address,
             owner: user2.address,
             priceRate: toNano(1),
             slippage: toNano(0.02),
@@ -666,7 +671,6 @@ describe('VaultFactory', () => {
         // console.log("=== Vault JETTON balance BEFORE match 1:", vaultJettonBalance_before_match1)
 
         const resultMatchOrder1 = await orderTon1.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH, {
-            anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             createdAt: (await orderJetton1.getData()).createdAt,
             amount: toNano(500),
@@ -710,6 +714,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTon2 = await vaultTon.sendCreateOrder(user1.getSender(), toNano(1000) + GAS_CREATE_ORDER_TON + GAS_EXCESS, {
             amount: toNano(1000),
             priceRate: toNano(1),
+            oppositeVault: vaultJetton.address,
             slippage: toNano(0.02),
             toJettonMinter: toJettonMinter.address,
             providerFee: deployer.address,
@@ -731,6 +736,7 @@ describe('VaultFactory', () => {
         const resCreateOrderJetton2 = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(1000),
             vault: vaultJetton.address,
+            oppositeVault: vaultTon.address,
             owner: user2.address,
             priceRate: toNano(1),
             slippage: toNano(0.02),
@@ -758,7 +764,6 @@ describe('VaultFactory', () => {
         // console.log("=== Vault JETTON balance BEFORE match 2:", vaultJettonBalance_before_match2)
 
         const resultMatchOrder2 = await orderTon2.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH, {
-            anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             createdAt: (await orderJetton2.getData()).createdAt,
             amount: toNano(1000),
@@ -802,6 +807,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTon3 = await vaultTon.sendCreateOrder(user1.getSender(), toNano(500) + GAS_CREATE_ORDER_TON + GAS_EXCESS, {
             amount: toNano(500),
             priceRate: toNano(1),
+            oppositeVault: vaultJetton.address,
             slippage: toNano(0.02),
             toJettonMinter: toJettonMinter.address,
             providerFee: deployer.address,
@@ -823,6 +829,7 @@ describe('VaultFactory', () => {
         const resCreateOrderJetton3 = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(500),
             vault: vaultJetton.address,
+            oppositeVault: vaultTon.address,
             owner: user2.address,
             priceRate: toNano(1),
             slippage: toNano(0.02),
@@ -850,7 +857,6 @@ describe('VaultFactory', () => {
         // console.log("=== Vault JETTON balance BEFORE match 3:", vaultJettonBalance_before_match3)
 
         const resultMatchOrder3 = await orderTon3.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH, {
-            anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             createdAt: (await orderJetton3.getData()).createdAt,
             amount: toNano(500),
@@ -905,6 +911,7 @@ describe('VaultFactory', () => {
 
         // Create TON vault
         const resVaultTon = await vaultTonFactory.sendCreateVault(deployer.getSender(), GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE, null, null)
+        printTransactionFees(resVaultTon.transactions, mapOpcode)
         expect(resVaultTon.transactions).toHaveTransaction({
             from: deployer.address,
             to: vaultTonFactory.address,
@@ -914,6 +921,7 @@ describe('VaultFactory', () => {
 
         // Create JETTON vault
         const resVaultJetton = await vaultFactory.sendCreateVault(deployer.getSender(), GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE, jettonWalletCodeCell, toJettonMinter.address)
+        printTransactionFees(resVaultJetton.transactions, mapOpcode)
         expect(resVaultJetton.transactions).toHaveTransaction({
             from: deployer.address,
             to: vaultFactory.address,
@@ -925,6 +933,7 @@ describe('VaultFactory', () => {
         const resCreateOrderTon = await vaultTon.sendCreateOrder(user1.getSender(), toNano(1000) + GAS_CREATE_ORDER_TON + GAS_EXCESS, {
             amount: toNano(1000),
             priceRate: toNano(1),
+            oppositeVault: vaultJetton.address,
             slippage: toNano(0.01),
             toJettonMinter: toJettonMinter.address,
             providerFee: deployer.address,
@@ -934,8 +943,8 @@ describe('VaultFactory', () => {
             matcherFeeDenom: 1000,
             createdAt: Math.round(Number(new Date().getTime() / 1000))
         })
-        // console.log("Order TON created")
-        // printTransactionFees(resCreateOrderTon.transactions, mapOpcode)
+        console.log("Order TON created")
+        printTransactionFees(resCreateOrderTon.transactions, mapOpcode)
         const orderTon = getOrderWrapper(blockchain, resCreateOrderTon, vaultTon.address)
         
         // Get initial order balance
@@ -949,6 +958,7 @@ describe('VaultFactory', () => {
         const resCreateOrderJetton = await jettonWalletTo.sendCreateOrder(user2.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
             jettonAmount: toNano(1000),
             vault: vaultJetton.address,
+            oppositeVault: vaultTon.address,
             owner: user2.address,
             priceRate: toNano(1),
             slippage: toNano(0.01),
@@ -961,8 +971,8 @@ describe('VaultFactory', () => {
             matcherFeeDenom: 1000,
             createdAt: Math.round(Number(new Date().getTime() / 1000))
         })
-        // console.log("Order JETTON created")
-        // printTransactionFees(resCreateOrderJetton.transactions, mapOpcode)
+        console.log("Order JETTON created")
+        printTransactionFees(resCreateOrderJetton.transactions, mapOpcode)
         const orderJetton = getOrderWrapper(blockchain, resCreateOrderJetton, vaultJetton.address)
         
         // Get initial order balance
@@ -988,14 +998,13 @@ describe('VaultFactory', () => {
         const matchAmount1 = toNano(300);
 
         const resultMatchOrder1 = await orderTon.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH, {
-            anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             createdAt: (await orderJetton.getData()).createdAt,
             amount: matchAmount1,
         })
         // printGasUsage(resultMatchOrder1.transactions, mapOpcode)
-        // console.log("Match 1 executed (300)")
-        // printTransactionFees(resultMatchOrder1.transactions, mapOpcode)
+        console.log("Match 1 executed (300)")
+        printTransactionFees(resultMatchOrder1.transactions, mapOpcode)
 
         const orderTonDataAfterMatch1 = await orderTon.getData()
         const orderJettonDataAfterMatch1 = await orderJetton.getData()
@@ -1041,7 +1050,6 @@ describe('VaultFactory', () => {
         const matchAmount2 = toNano(300);
 
         const resultMatchOrder2 = await orderTon.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH, {
-            anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             createdAt: (await orderJetton.getData()).createdAt,
             amount: matchAmount2,
@@ -1092,7 +1100,6 @@ describe('VaultFactory', () => {
         const matchAmount3 = toNano(400);
 
         const resultMatchOrder3 = await orderTon.sendMatchOrder(user1.getSender(), GAS_ORDER_FULL_MATCH, {
-            anotherVault: vaultJetton.address,
             anotherOrderOwner: user2.address,
             createdAt: (await orderJetton.getData()).createdAt,
             amount: matchAmount3,

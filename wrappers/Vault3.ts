@@ -120,12 +120,19 @@ export class Vault3 implements Contract {
         });
     }
 
-    async sendInitVault(provider: ContractProvider, via: Sender, value: bigint) {
+    async sendInitVault(provider: ContractProvider, via: Sender, value: bigint, params: {
+        creator: Address | null,
+    }) {
+        var creatorAddress: Address | null = params.creator;
+        if (params.creator === null) {
+            creatorAddress = via.address!;
+        }
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x2717c4a2, 32)
+            .storeAddress(params.creator)
             .endCell(),
         });
     }

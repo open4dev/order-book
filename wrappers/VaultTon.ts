@@ -61,6 +61,7 @@ export class VaultTon implements Contract {
     async sendCreateOrder(provider: ContractProvider, via: Sender, value: bigint, params: {
         amount: bigint,
         priceRate: bigint,
+        oppositeVault: Address,
         slippage: bigint, // uint30
         toJettonMinter: Address,
         providerFee: Address,
@@ -98,17 +99,24 @@ export class VaultTon implements Contract {
                 .endCell()
             )
             .storeUint(params.createdAt, 32)
+            .storeAddress(params.oppositeVault)
             .endCell(),
         });
     }
 
-    async sendInitVault(provider: ContractProvider, via: Sender, value: bigint) {
+    async sendInitVault(provider: ContractProvider, via: Sender, value: bigint, params: {
+        creator: Address | null,
+    }) {
+        var creatorAddress: Address | null = params.creator;
+        if (params.creator === null) {
+            creatorAddress = via.address!;
+        }
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x2717c4a2, 32)
-            .storeAddress(via.address!)
+            .storeAddress(params.creator)
             .endCell(),
         });
     }

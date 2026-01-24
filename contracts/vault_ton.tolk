@@ -26,6 +26,7 @@ struct ToJettonInfo {
 
 struct ( 0x12966c79 ) VaultJettonTransfer {
     addresses: Cell<TransferAddresses>
+    oppositeVault: address
     toJetton: Cell<JettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
@@ -43,6 +44,7 @@ struct ( 0xcbcd047e ) TonTransfer {
     slippage: uint30
     feeInfo: Cell<FeeInfo>
     createdAt: uint32
+    oppositeVault: address
 }
 
 struct (0xee83652a) WithDraw {
@@ -52,6 +54,7 @@ struct (0xee83652a) WithDraw {
 
 struct ( 0xa597947e ) CloseOrder {
     orderOwner: address
+    oppositeVault: address
     toJetton: Cell<ToJettonInfo>?
     amountTransfer: coins
     createdAtOrder: uint32
@@ -61,9 +64,10 @@ fun Storage.save(self) {
     contract.setData(self.toCell())
 }
 
-fun Storage.sendCreateOrder(mutate self, toJetton: cell, owner: address, amount: coins, priceRate: coins, slippage: uint30, feeInfo: Cell<FeeInfo>, value: coins, createdAt: uint32, sendMode: int) {
+fun Storage.sendCreateOrder(mutate self, toJetton: cell, owner: address, amount: coins, priceRate: coins, slippage: uint30, feeInfo: Cell<FeeInfo>, value: coins, createdAt: uint32, oppositeVault: address, sendMode: int) {
     var order: AutoDeployAddress = generateOrder(
         contract.getAddress(),
+        oppositeVault,
         owner,
         null,
         toJetton,
@@ -99,6 +103,7 @@ fun onInternalMessage(in: InMessage) {
             var addresses = msg.addresses.load();
             var generatedOrder = generateOrder(
                 contract.getAddress(),
+                msg.oppositeVault,
                 addresses.orderOwner,
                 null,
                 msg.toJetton,
@@ -112,7 +117,7 @@ fun onInternalMessage(in: InMessage) {
             .endCell();
 
             var bodySwap = beginCell()
-                .storeUint(OP_CODE_SWAP, 32)
+                .storeUint(OP_CODE_SWAP_TON, 32)
             .endCell();
 
             
@@ -133,6 +138,7 @@ fun onInternalMessage(in: InMessage) {
             val codesInfo = storage.codesInfo.load();
             var generatedOrder = generateOrder(
                 contract.getAddress(),
+                msg.oppositeVault,
                 msg.orderOwner,
                 null,
                 msg.toJetton,
@@ -141,7 +147,7 @@ fun onInternalMessage(in: InMessage) {
             );
             assert(generatedOrder.calculateAddress() == in.senderAddress) throw ERR_INVALID_SENDER;
             
-            var body = beginCell().storeUint(OP_CODE_SWAP, 32).endCell();
+            var body = beginCell().storeUint(OP_CODE_SWAP_TON, 32).endCell();
             sendSimpleMessage(msg.orderOwner, msg.amountTransfer, body, SEND_MODE_CARRY_ALL_BALANCE);
             storage.amount -= msg.amountTransfer;
             storage.save();
@@ -149,7 +155,7 @@ fun onInternalMessage(in: InMessage) {
         TonTransfer => {
             assert(in.valueCoins >= msg.amount + GAS_VAULT_TON_TRANSFER) throw ERR_INSUFFICIENT_GAS;
             reserveToncoinsOnBalance(storage.amount + msg.amount + GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
-            storage.sendCreateOrder(msg.toJetton, in.senderAddress, msg.amount, msg.priceRate, msg.slippage, msg.feeInfo, 0, msg.createdAt, SEND_MODE_CARRY_ALL_BALANCE);
+            storage.sendCreateOrder(msg.toJetton, in.senderAddress, msg.amount, msg.priceRate, msg.slippage, msg.feeInfo, 0, msg.createdAt, msg.oppositeVault, SEND_MODE_CARRY_ALL_BALANCE);
             storage.amount += msg.amount;
             storage.save();
         }

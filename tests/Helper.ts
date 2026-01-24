@@ -96,6 +96,8 @@ export const mapOpcode = (op: number): string | null => {
             return 'JettonWalletInternalTransferExcesses';
         case 0xf8a7ea5:
             return 'JettonWalletTransfer';
+        case 0x15082c35:
+            return 'SwapTon';
         default:
             return null;
     }
