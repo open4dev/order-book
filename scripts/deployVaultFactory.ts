@@ -21,7 +21,7 @@ export async function run(provider: NetworkProvider) {
     // Uncomment to deploy a new VaultFactory:
     
     // Compile contracts
-    const vaultCode = await compile('Vault3'); // You can change to 'Vault' or 'Vault2'
+    const vaultCode = await compile('Vault'); // You can change to 'Vault' or 'Vault2'
     const orderCode = await compile('Order');
     const feeCollectorCode = await compile('FeeCollector');
     const vaultFactoryCode = await compile('VaultFactory');

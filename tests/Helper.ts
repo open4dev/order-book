@@ -29,6 +29,7 @@ export const GAS_VAULT_TON_TRANSFER = toNano("0.1");
 export const GAS_ORDER_CLOSE_ORDER = toNano("0.05");
 export const GAS_ORDER_INIT = toNano("0.04");
 export const GAS_VAULT_JETTON_TRANSFER_NOTIFICATION = toNano("0.1");
+export const GAS_VAULT_WITHDRAW = toNano("0.004154");
 
 export const GAS_FEE_COLLECTOR_WITHDRAW = toNano("0.05");
 export const GAS_FEE_COLLECTOR_ADD_FEE = toNano("0.001");
