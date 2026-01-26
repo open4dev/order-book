@@ -91,11 +91,6 @@ export class Vault implements Contract {
         createdAt: number,
         oppositeVault: Address,
     }) {
-        // struct ( 0xcbcd047e ) TonTransfer {
-        //     amount: coins,
-        //     toJetton: Cell<ToJettonInfo>
-        //     slippage: uint30
-        // }
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,

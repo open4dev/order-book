@@ -211,7 +211,6 @@ fun onInternalMessage(in: InMessage) {
             storage.save();
         }
         JettonTransferNotification => {
-            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
             val codesInfo = storage.codesInfo.load();
             var generatedJettonWallet = calculateJettonWallet(codesInfo.jettonWalletCode!, storage.fromJetton!.load().jettonMinter, contract.getAddress());
 
@@ -225,6 +224,7 @@ fun onInternalMessage(in: InMessage) {
                 sendJettonTransfer(0, generatedJettonWallet, msg.amount, msg.sender, msg.sender, 0, SEND_MODE_CARRY_ALL_REMAINING_MESSAGE_VALUE);
                 return;
             }
+            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
 
             var forwardPayload = msg.forward_payload!.load();
             

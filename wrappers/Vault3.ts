@@ -132,7 +132,7 @@ export class Vault3 implements Contract {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell()
             .storeUint(0x2717c4a2, 32)
-            .storeAddress(params.creator)
+            .storeAddress(creatorAddress)
             .endCell(),
         });
     }

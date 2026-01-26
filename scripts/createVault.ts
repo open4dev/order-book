@@ -13,7 +13,7 @@ import { GAS_STORAGE, GAS_VAULT_FACTORY_CREATE_VAULT, GAS_EXCESS } from '../test
  */
 export async function run(provider: NetworkProvider) {
     // Replace with your actual VaultFactory address
-    const VAULT_FACTORY_ADDRESS = Address.parse("YOUR_VAULT_FACTORY_ADDRESS_HERE");
+    const VAULT_FACTORY_ADDRESS = Address.parse("0:9fbdf148110edc19602ae7ff0cf8ef6c9f454e07255b4a3fbeba93d72345a955");
     
     const vaultFactory = provider.open(VaultFactory.createFromAddress(VAULT_FACTORY_ADDRESS));
     // ============================================
@@ -45,13 +45,13 @@ export async function run(provider: NetworkProvider) {
     // EXAMPLE 3: Create Jetton Vault with Custom Wallet Code
     // ============================================
     // If you need to use a custom jetton wallet code:
-    // const CUSTOM_JETTON_WALLET_CODE = Cell.fromHex("YOUR_CUSTOM_JETTON_WALLET_CODE_HEX_HERE");
-    // const JETTON_MINTER_ADDRESS = Address.parse("YOUR_JETTON_MINTER_ADDRESS_HERE");
-    // 
-    // await vaultFactory.sendCreateVault(
-    //     provider.sender(),
-    //     GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE + GAS_EXCESS,
-    //     CUSTOM_JETTON_WALLET_CODE,
-    //     JETTON_MINTER_ADDRESS,
-    // );
+    const CUSTOM_JETTON_WALLET_CODE = Cell.fromHex("b5ee9c7201010101002300084202ba2918c8947e9b25af9ac1b883357754173e5812f807a3d6e642a14709595395");
+    const JETTON_MINTER_ADDRESS = Address.parse("EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD");
+    
+    await vaultFactory.sendCreateVault(
+        provider.sender(),
+        GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE + GAS_EXCESS,
+        CUSTOM_JETTON_WALLET_CODE,
+        JETTON_MINTER_ADDRESS,
+    );
 }

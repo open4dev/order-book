@@ -911,7 +911,7 @@ describe('VaultFactory', () => {
 
         // Create TON vault
         const resVaultTon = await vaultTonFactory.sendCreateVault(deployer.getSender(), GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE, null, null)
-        printTransactionFees(resVaultTon.transactions, mapOpcode)
+        // printTransactionFees(resVaultTon.transactions, mapOpcode)
         expect(resVaultTon.transactions).toHaveTransaction({
             from: deployer.address,
             to: vaultTonFactory.address,
@@ -921,7 +921,7 @@ describe('VaultFactory', () => {
 
         // Create JETTON vault
         const resVaultJetton = await vaultFactory.sendCreateVault(deployer.getSender(), GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE, jettonWalletCodeCell, toJettonMinter.address)
-        printTransactionFees(resVaultJetton.transactions, mapOpcode)
+        // printTransactionFees(resVaultJetton.transactions, mapOpcode)
         expect(resVaultJetton.transactions).toHaveTransaction({
             from: deployer.address,
             to: vaultFactory.address,
@@ -944,7 +944,7 @@ describe('VaultFactory', () => {
             createdAt: Math.round(Number(new Date().getTime() / 1000))
         })
         console.log("Order TON created")
-        printTransactionFees(resCreateOrderTon.transactions, mapOpcode)
+        // printTransactionFees(resCreateOrderTon.transactions, mapOpcode)
         const orderTon = getOrderWrapper(blockchain, resCreateOrderTon, vaultTon.address)
         
         // Get initial order balance
@@ -972,7 +972,7 @@ describe('VaultFactory', () => {
             createdAt: Math.round(Number(new Date().getTime() / 1000))
         })
         console.log("Order JETTON created")
-        printTransactionFees(resCreateOrderJetton.transactions, mapOpcode)
+        // printTransactionFees(resCreateOrderJetton.transactions, mapOpcode)
         const orderJetton = getOrderWrapper(blockchain, resCreateOrderJetton, vaultJetton.address)
         
         // Get initial order balance
@@ -1004,7 +1004,7 @@ describe('VaultFactory', () => {
         })
         // printGasUsage(resultMatchOrder1.transactions, mapOpcode)
         console.log("Match 1 executed (300)")
-        printTransactionFees(resultMatchOrder1.transactions, mapOpcode)
+        // printTransactionFees(resultMatchOrder1.transactions, mapOpcode)
 
         const orderTonDataAfterMatch1 = await orderTon.getData()
         const orderJettonDataAfterMatch1 = await orderJetton.getData()
@@ -1160,18 +1160,61 @@ describe('VaultFactory', () => {
     })
 
     it("CreateVault -> Failed with not enough gas", async () => {
-        // TODO: Add test logic for assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
+        // Send with gas less than GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE
+        const res = await vaultFactory.sendCreateVault(
+            deployer.getSender(),
+            GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE - toNano(0.001),
+            jettonWalletCodeCell,
+            fromJettonMinter.address
+        );
+        expect(res.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: vaultFactory.address,
+            success: false,
+            exitCode: 422, // ERR_INSUFFICIENT_GAS
+        });
     });
 
     it("CreateVault -> Success with enough gas", async () => {
-        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE);
+        // Send with gas >= GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE
+        const res = await vaultFactory.sendCreateVault(
+            deployer.getSender(),
+            GAS_VAULT_FACTORY_CREATE_VAULT + GAS_STORAGE + GAS_EXCESS,
+            jettonWalletCodeCell,
+            fromJettonMinter.address
+        );
+        expect(res.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: vaultFactory.address,
+            success: true,
+        });
+        expect((await blockchain.getContract(vaultFactory.address)).balance).toEqual(GAS_STORAGE);
     });
 
     it("InitVaultFactory -> Failed with not enough gas", async () => {
-        // TODO: Add test logic for assert(in.valueCoins >= GAS_VAULT_FACTORY_INIT + GAS_STORAGE) throw ERR_INSUFFICIENT_GAS;
+        // Send with gas less than GAS_VAULT_FACTORY_INIT + GAS_STORAGE
+        const res = await vaultFactory.sendDeploy(
+            deployer.getSender(),
+            GAS_VAULT_FACTORY_INIT + GAS_STORAGE - toNano(0.001)
+        );
+        expect(res.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: vaultFactory.address,
+            success: false,
+            exitCode: 422, // ERR_INSUFFICIENT_GAS
+        });
     });
 
     it("InitVaultFactory -> Success with enough gas", async () => {
-        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_VAULT_FACTORY_INIT + GAS_STORAGE);
+        // Send with gas >= GAS_VAULT_FACTORY_INIT + GAS_STORAGE
+        const res = await vaultFactory.sendDeploy(
+            deployer.getSender(),
+            GAS_VAULT_FACTORY_INIT + GAS_STORAGE + GAS_EXCESS
+        );
+        expect(res.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: vaultFactory.address,
+            success: true,
+        });
     });
 });

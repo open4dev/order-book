@@ -1087,9 +1087,61 @@ describe('Order', () => {
         })
     });
 
-    // Already tested
     it('InternalMatchOrder -> Success with valid slippage', async () => {
-        // TODO: Add positive test logic for assert ((exchangeInfo.amount > 0) && (compareSlippage == 0) && (anotherCompareSlippage == 0));
+        await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        await vaultJetton1.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
+            creator: null,
+        });
+        const resMint1 = await jettonMinter1.sendMint(deployer.getSender(), deployer.address, toNano(1000), null, null, null, undefined, undefined);
+        const jettonWallet1 = getJettonWalletWrapper(blockchain, resMint1, jettonMinter1.address);
+        const resCreateOrder1 = await vaultTon.sendCreateOrder(deployer.getSender(), toNano(10) + GAS_CREATE_ORDER_TON + GAS_EXCESS, {
+            amount: toNano(10),
+            priceRate: toNano(10),
+            oppositeVault: vaultJetton1.address,
+            slippage: toNano(0.02),
+            toJettonMinter: jettonMinter1.address,
+            providerFee: deployer.address,
+            feeNum: 1,
+            feeDenom: 1000,
+            matcherFeeNum: 1,
+            matcherFeeDenom: 1000,
+            createdAt: Math.round(Number(new Date().getTime() / 1000)),
+        })
+        const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultTon.address);
+
+        const resCreateOrder2 = await jettonWallet1.sendCreateOrder(deployer.getSender(), toNano(0.05) + GAS_CREATE_ORDER_JETTON + GAS_EXCESS, {
+            jettonAmount: toNano(100),
+            vault: vaultJetton1.address,
+            oppositeVault: vaultTon.address,
+            owner: deployer.address,
+            priceRate: toNano(0.1),
+            slippage: toNano(0.02),
+            toJettonMinter: null,
+            forwardTonAmount: GAS_CREATE_ORDER_JETTON,
+            providerFee: deployer.address,
+            feeNum: 1,
+            feeDenom: 1000,
+            matcherFeeNum: 1,
+            matcherFeeDenom: 1000,
+            createdAt: Math.round(Number(new Date().getTime() / 1000)),
+        })
+        const order2 = getOrderWrapper(blockchain, resCreateOrder2, vaultJetton1.address);
+
+        // Match orders - this will trigger InternalMatchOrder with valid slippage
+        const res = await order1.sendMatchOrder(deployer.getSender(), GAS_ORDER_FULL_MATCH + GAS_EXCESS, {
+            anotherOrderOwner: deployer.address,
+            createdAt: (await order2.getData()).createdAt,
+            amount: toNano(10),
+        });
+
+        expect(res.transactions).toHaveTransaction({
+            from: order1.address,
+            to: order2.address,
+            success: true,
+            op: 0xdfe29f63, // OP_CODE_INTERNAL_MATCH_ORDER
+        });
     });
 
     
@@ -1219,7 +1271,6 @@ describe('Order', () => {
     });
 
     it('CloseOrder -> Failed with not enough gas', async () => {
-        // TODO: Add test logic for assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER) throw ERR_INSUFFICIENT_GAS;
         await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
             creator: null,
         });
@@ -1238,18 +1289,17 @@ describe('Order', () => {
         })
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultTon.address);
 
-        const res = await order1.sendCloseOrder(deployer.getSender(), toNano(0.01));
+        // Send with gas less than GAS_ORDER_CLOSE_ORDER
+        const res = await order1.sendCloseOrder(deployer.getSender(), GAS_ORDER_CLOSE_ORDER - toNano(0.01));
         expect(res.transactions).toHaveTransaction({
             from: deployer.address,
             to: order1.address,
             success: false,
-            exitCode: 422,
-        })
-
+            exitCode: 422, // ERR_INSUFFICIENT_GAS
+        });
     });
 
     it('CloseOrder -> Success with enough gas', async () => {
-        // TODO: Add positive test logic for assert(in.valueCoins >= GAS_ORDER_CLOSE_ORDER);
         await vaultTon.sendInitVault(mockVaultFactory.getSender(), GAS_STORAGE + GAS_EXCESS, {
             creator: null,
         });
@@ -1266,26 +1316,26 @@ describe('Order', () => {
             matcherFeeDenom: 1000,
             createdAt: Math.round(Number(new Date().getTime() / 1000)),
         })
-        // printTransactionFees(resCreateOrder1.transactions);
         const order1 = getOrderWrapper(blockchain, resCreateOrder1, vaultTon.address);
 
+        // Send with gas >= GAS_ORDER_CLOSE_ORDER
         const res = await order1.sendCloseOrder(deployer.getSender(), GAS_ORDER_CLOSE_ORDER + GAS_EXCESS);
         expect(res.transactions).toHaveTransaction({
             from: deployer.address,
             to: order1.address,
             success: true,
-        })
+        });
         expect(res.transactions).toHaveTransaction({
             from: order1.address,
             to: vaultTon.address,
             success: true,
-            op: 0xa597947e
-        })
+            op: 0xa597947e, // OP_CODE_CLOSE_ORDER_VAULT
+        });
         expect(res.transactions).toHaveTransaction({
             from: vaultTon.address,
             to: deployer.address,
             success: true,
-            op: 0x15082c35,
-        })
+            op: 0x15082c35, // OP_CODE_SWAP_TON
+        });
     });
 });

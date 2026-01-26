@@ -215,8 +215,8 @@ The VaultFactory contract is deployed with support for multiple vault versions:
 |---------------|-----------------|
 | VaultFactory with Vault-V1 | `` |
 | VaultFactory with Vault-V2 | `` |
-| VaultFactory with Vault-V3 | `EQDjePE-do4Dn-ydes9s4UdK28EW3vVD6PVrlN59wNB3lwTX` |
-| VaultFactory with VaultTon(0) | `EQAX8remy7sQLsWYv9ChULQz4GYqPHaqrgqA1Y-SqTLM6aQ1` |
+| VaultFactory with Vault-V3 | `EQCfvfFIEQ7cGWAq5_8M-O9sn0VOByVbSj--upPXI0WpVYW0` |
+| VaultFactory with VaultTon(0) | `EQDTC1IWHkpPxhlQxQPVqRoy1PC2vIllD2O6MY1IHRqJoquX` |
 
 #### Supported Tokens
 
@@ -224,7 +224,7 @@ The VaultFactory contract is deployed with support for multiple vault versions:
 
 | Property | Value |
 |----------|-------|
-| **Vault Address** | `EQD-fT3BFC3EBpzq7I0awO4pShsd1rlhGiHNbGYPBxOYOUSe` |
+| **Vault Address** | `EQCEa1vAUaoMn8tGgo-uGRr4pgaM-pWltf0LVsr3MoOExcHo` |
 | **Vault Version** | 0 |
 
 ##### Popular Jettons
@@ -234,7 +234,7 @@ The VaultFactory contract is deployed with support for multiple vault versions:
 | Property | Value |
 |----------|-------|
 | **Jetton Address** | `EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT` |
-| **Vault Address** | `EQBCg_3o5JK6Zf0aQjGTC3MQGEHYlCaqBMqQl2-xqfHtJrIS` |
+| **Vault Address** | `EQCCKmiaKRAOI1rUIEo1367M8lrOsvc8qacrJt2j8NzLcEj_` |
 | **Vault Version** | 3 |
 
 ###### 2. BUILD
@@ -242,7 +242,7 @@ The VaultFactory contract is deployed with support for multiple vault versions:
 | Property | Value |
 |----------|-------|
 | **Jetton Address** | `EQBYnUrIlwBrWqp_rl-VxeSBvTR2VmTfC4ManQ657n_BUILD` |
-| **Vault Address** | `EQBcViopEOVaVLmD2O26ANM12GyfFBUNpZUMTnMd8SP6heUr` |
+| **Vault Address** | `EQDIaPKF40ww9w1kpIyg30NFvYFWCwgNUo1RZxMv7YvYd_Pt` |
 | **Vault Version** | 3 |
 
 ###### 3. USDT
@@ -250,7 +250,7 @@ The VaultFactory contract is deployed with support for multiple vault versions:
 | Property | Value |
 |----------|-------|
 | **Jetton Address** | `EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs` |
-| **Vault Address** | `EQBF5UcxBqvNdN_D2roBj3ICvHxRL5cVCwNu8flt9coki4K6` |
+| **Vault Address** | `EQDR_mQPUSf4Z55gnmqabL8mEp4tl83h4_GDKzgDB0SGOAvb` |
 | **Vault Version** | 3 |
 
 ###### 4. ANON
