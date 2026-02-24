@@ -10,7 +10,7 @@ import { GAS_ORDER_CLOSE_ORDER, GAS_EXCESS } from '../tests/Helper';
  */
 export async function run(provider: NetworkProvider) {
     // Replace with your actual order address
-    const ORDER_ADDRESS = Address.parse("0:5a605f9272ea76369bdf98c767302236c5e5a7d233fdbcb470e10cfd1c263a18");
+    const ORDER_ADDRESS = Address.parse("ADDRESS_HERE");
     
     const order = provider.open(Order.createFromAddress(ORDER_ADDRESS));
     
