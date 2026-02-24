@@ -160,7 +160,7 @@ fun onInternalMessage(in: InMessage) {
             storage.save();
         }
         InitVault => {
-            reserveToncoinsOnBalance(GAS_STORAGE, RESERVE_MODE_EXACT_AMOUNT);
+            reserveToncoinsOnBalance(GAS_STORAGE + storage.amount, RESERVE_MODE_EXACT_AMOUNT);
             assert(in.senderAddress == storage.vault_factory) throw ERR_INVALID_SENDER;
             val body = generateBodyWithComment("Vault Initialized");
             sendSimpleMessage(msg.creator, 0, body, SEND_MODE_CARRY_ALL_BALANCE);
