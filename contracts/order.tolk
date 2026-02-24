@@ -292,6 +292,7 @@ fun onInternalMessage(in: InMessage) {
             assert(in.senderAddress == storage.owner) throw ERR_INVALID_SENDER;
             
             var exchangeInfo = storage.exchangeInfo.load();
+            assert(exchangeInfo.amount > 0) throw ERR_AMOUNT_NOT_AVAILABLE;
 
 
             storage.sendVaultCloseOrder(
